@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +40,7 @@ from azurelinuxagent.common.exception import UpdateError
 from azurelinuxagent.common.protocol.restapi import *
 from azurelinuxagent.common.protocol.wire import *
 from azurelinuxagent.common.utils.flexible_version import FlexibleVersion
-from azurelinuxagent.common.version import AGENT_NAME, AGENT_VERSION
+from azurelinuxagent.common.version import AGENT_NAME, AGENT_VERSION, DISTRO_NAME
 from azurelinuxagent.ga.update import *
 
 NO_ERROR = {
@@ -1059,6 +1060,7 @@ class TestUpdate(UpdateTestCase):
         self.assertEqual(2, mock_time.time_call_count)
         return
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_run_latest_defaults_to_current(self):
         self.assertEqual(None, self.update_handler.get_latest_agent())
 

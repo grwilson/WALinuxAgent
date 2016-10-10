@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +31,7 @@ from .suse import SUSEOSUtil, SUSE11OSUtil
 from .ubuntu import UbuntuOSUtil, Ubuntu12OSUtil, Ubuntu14OSUtil, \
                     UbuntuSnappyOSUtil
 from .alpine import AlpineOSUtil
+from .delphix import DelphixOSUtil
 
 def get_osutil(distro_name=DISTRO_NAME, distro_version=DISTRO_VERSION,
                distro_full_name=DISTRO_FULL_NAME):
@@ -70,6 +72,8 @@ def get_osutil(distro_name=DISTRO_NAME, distro_version=DISTRO_VERSION,
             return RedhatOSUtil()
     elif distro_name == "freebsd":
         return FreeBSDOSUtil()
+    elif distro_name == "delphix":
+        return DelphixOSUtil()
     else:
         logger.warn("Unable to load distro implementation for {0}.", distro_name)
         logger.warn("Use default distro implementation instead.")

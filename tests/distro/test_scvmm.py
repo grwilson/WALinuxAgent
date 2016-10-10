@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +25,7 @@ from tests.tools import *
 import azurelinuxagent.daemon.scvmm as scvmm
 from azurelinuxagent.daemon.main import *
 from azurelinuxagent.common.osutil.default import DefaultOSUtil
+from azurelinuxagent.common.version import DISTRO_NAME
 
 class TestSCVMM(AgentTestCase):
     def test_scvmm_detection_with_file(self):
@@ -49,6 +51,7 @@ class TestSCVMM(AgentTestCase):
                     os.remove(scvmm_file)
 
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_scvmm_detection_with_multiple_cdroms(self):
         # setup
         conf.get_dvd_mount_point = Mock(return_value=self.tmp_dir)

@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +31,9 @@ def get_distro():
     if 'FreeBSD' in platform.system():
         release = re.sub('\-.*\Z', '', ustr(platform.release()))
         osinfo = ['freebsd', release, '', 'freebsd']
+    elif 'SunOS' in platform.system():
+        release = fileutil.read_file("/etc/delphix/version")
+        osinfo = ['delphix', release, '', 'delphix']
     elif 'linux_distribution' in dir(platform):
         osinfo = list(platform.linux_distribution(full_distribution_name=0,
             supported_dists=platform._supported_dists+('alpine',)))

@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +22,7 @@ import mock
 import azurelinuxagent.common.osutil.default as osutil
 import azurelinuxagent.common.utils.shellutil as shellutil
 from azurelinuxagent.common.osutil import get_osutil
+from azurelinuxagent.common.version import DISTRO_NAME
 from tests.tools import *
 
 
@@ -39,6 +41,7 @@ class TestOSUtil(AgentTestCase):
             self.assertEqual(run_patch.call_count, retries)
             self.assertEqual(run_patch.call_args_list[0][0][0], 'ifdown {0} && ifup {0}'.format(ifname))
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_get_first_if(self):
         ifname, ipaddr = osutil.DefaultOSUtil().get_first_if()
         self.assertTrue(ifname.startswith('eth'))
@@ -48,6 +51,7 @@ class TestOSUtil(AgentTestCase):
         except socket.error:
             self.fail("not a valid ip address")
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_isloopback(self):
         self.assertTrue(osutil.DefaultOSUtil().is_loopback(b'lo'))
         self.assertFalse(osutil.DefaultOSUtil().is_loopback(b'eth0'))
@@ -106,6 +110,7 @@ class TestOSUtil(AgentTestCase):
             self.assertFalse(osutil.DefaultOSUtil().is_primary_interface('nflg'))
             self.assertFalse(osutil.DefaultOSUtil().is_primary_interface('invalid'))
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_no_primary_does_not_throw(self):
         with patch.object(osutil.DefaultOSUtil, 'get_primary_interface') \
                 as patch_primary:
@@ -142,6 +147,7 @@ class TestOSUtil(AgentTestCase):
                 self.assertTrue(endpoint is not None)
                 self.assertEqual(endpoint, "second")
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_get_total_mem(self):
         """
         Validate the returned value matches to the one retrieved by invoking shell command
@@ -153,6 +159,7 @@ class TestOSUtil(AgentTestCase):
         else:
             self.fail("Cannot retrieve total memory using shell command.")
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_get_processor_cores(self):
         """
         Validate the returned value matches to the one retrieved by invoking shell command

@@ -52,7 +52,7 @@ try {
                 }
 
                 stage('Dependencies') {
-                    sh('sudo pip install discover')
+                    sh('sudo pip install discover unittest2')
                 }
 
                 stage('Tests') {

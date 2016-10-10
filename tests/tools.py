@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +26,12 @@ import re
 import shutil
 import sys
 import tempfile
-import unittest
+
+#Import unittest2 for Python 2.6 and unittest for Python 2.7+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 from functools import wraps
 

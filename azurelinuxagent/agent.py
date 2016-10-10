@@ -1,6 +1,7 @@
 # Microsoft Azure Linux Agent
 #
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,8 +54,27 @@ class Agent(object):
         level = logger.LogLevel.VERBOSE if verbose else logger.LogLevel.INFO
         logger.add_logger_appender(logger.AppenderType.FILE, level,
                                  path="/var/log/waagent.log")
-        logger.add_logger_appender(logger.AppenderType.CONSOLE, level,
-                                 path="/dev/console")
+#
+# TODO: Disabling this due to hangs seen when writing to /dev/console
+# with the following stack:
+# > ::pgrep python | ::walk thread | ::findstack -v
+# stack pointer for thread ffffff0368f503a0: ffffff000cf358c0
+# [ ffffff000cf358c0 _resume_from_idle+0xf4() ]
+#   ffffff000cf358f0 swtch+0x141()
+#   ffffff000cf35960 cv_wait_sig+0x185(ffffff031615718a, ffffff031615f668)
+#   ffffff000cf35990 str_cv_wait+0x27(ffffff031615718a, ffffff031615f668, ffffffffffffffff, 0)
+#   ffffff000cf35a40 strwaitq+0x2c3(ffffff031615f5e8, 1, 0, 2302, ffffffffffffffff, ffffff000cf35a8c)
+#   ffffff000cf35ae0 strwrite_common+0x19c(ffffff0316152700, ffffff000cf35e60, ffffff0365b1ade0, 0)
+#   ffffff000cf35b10 strwrite+0x1b(ffffff0316152700, ffffff000cf35e60, ffffff0365b1ade0)
+#   ffffff000cf35ca0 cnwrite+0x96(2700000000, ffffff000cf35e60, ffffff0365b1ade0)
+#   ffffff000cf35cd0 cdev_write+0x2d(2700000000, ffffff000cf35e60, ffffff0365b1ade0)
+#   ffffff000cf35db0 spec_write+0x4c1(ffffff03166efa00, ffffff000cf35e60, 0, ffffff0365b1ade0, 0)
+#   ffffff000cf35e30 fop_write+0x5b(ffffff03166efa00, ffffff000cf35e60, 0, ffffff0365b1ade0, 0)
+#   ffffff000cf35f00 write+0x250(3, a82e24, 40)
+#   ffffff000cf35f10 sys_syscall+0x17a()
+#
+#        logger.add_logger_appender(logger.AppenderType.CONSOLE, level,
+#                                 path="/dev/console")
 
         #Init event reporter
         event_dir = os.path.join(conf.get_lib_dir(), "events")
