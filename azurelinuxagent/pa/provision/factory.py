@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +22,15 @@ from azurelinuxagent.common.version import DISTRO_NAME, DISTRO_VERSION, \
                                      DISTRO_FULL_NAME
 from .default import ProvisionHandler
 from .ubuntu import UbuntuProvisionHandler
+from .delphix import DelphixProvisionHandler
 
 def get_provision_handler(distro_name=DISTRO_NAME, 
                             distro_version=DISTRO_VERSION,
                             distro_full_name=DISTRO_FULL_NAME):
     if distro_name == "ubuntu":
         return UbuntuProvisionHandler()
+    elif distro_name == "delphix":
+        return DelphixProvisionHandler()
 
     return ProvisionHandler()
 
