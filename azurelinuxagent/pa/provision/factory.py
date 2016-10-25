@@ -29,7 +29,7 @@ def get_provision_handler(distro_name=DISTRO_NAME,
                             distro_full_name=DISTRO_FULL_NAME):
     if distro_name == "ubuntu":
         return UbuntuProvisionHandler()
-    elif distro_name == "delphix":
+    if distro_name == "delphix":
         return DelphixProvisionHandler()
 
     return ProvisionHandler()
