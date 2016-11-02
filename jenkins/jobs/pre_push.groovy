@@ -8,7 +8,7 @@ pipelineJob('pre-push') {
 
     parameters {
         stringParam('GIT_URL', 'ssh://git@git/var/WALinuxAgent', 'The Git repository to use for the build.')
-        stringParam('GIT_BRANCH', 'master', 'The Git branch to use for the build.')
+        stringParam('GIT_BRANCH', 'projects/hyperv', 'The Git branch to use for the build.')
         stringParam('EMAIL', '', 'The email to use for build status notifications.')
     }
 

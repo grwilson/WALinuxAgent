@@ -2,33 +2,35 @@
  * Copyright (c) 2016 by Delphix. All rights reserved.
  */
 
-import org.apache.commons.lang.RandomStringUtils
-
-env.DCENTER_GUEST = 'walinuxagent-pre-push-' + RandomStringUtils.randomAlphanumeric(8)
-
 currentBuild.result = 'SUCCESS'
 error = null
+common = null
+
+node {
+    stage('Checkout') {
+        checkout([$class: 'GitSCM', changelog: false, poll: false,
+                  userRemoteConfigs: [[name: 'origin', url: GIT_URL, credentialsId: 'git-ci-key']],
+                  branches: [[name: GIT_BRANCH]],
+                  extensions: [[$class: 'WipeWorkspace']]])
+
+        common = load('jenkins/jobs/pipelines/common.groovy')
+
+        /*
+         * Some of the unit tests require the .git directory to be present, so we need to ensure we include this
+         * directory when stashing these files.
+         */
+        stash(name: 'walinuxagent', useDefaultExcludes: false)
+    }
+}
+
+if (common == null)
+    error('common pipeline library incorrectly loaded.')
+
+env.DCENTER_GUEST = common.getDCenterGuestName()
 
 try {
     stage('Create VM') {
-        node(env.DCENTER_HOST) {
-            sh("dc clone-latest ${env.DCENTER_IMAGE} ${env.DCENTER_GUEST}")
-
-            /*
-             * We need to wait for the VM that we create is ready to process incoming SSH connections, or else we
-             * can wind up in situation where we attempt to connect to the VM and attach it as a Jenkins slave,
-             * prior to the VM being ready; this would result in the job failing.
-             *
-             * By relying on "dc guest wait" and "dc guest run", we're encoding the assumption that the VM we just
-             * created has VMware's guest tools installed into the guest's operating system. Without these tools,
-             * we cannot use "dc guest". Additionally, by relying on the "svcadm" command, we encode the assumption
-             * that the VM we created is actually a "dlpx-trunk" VM. It's a shame to encode these implicit
-             * dependencies here, but there isn't any clearly better solution that would work across all guest
-             * operating systems; and since we're currently only using "dlpx-trunk" VMs, this should be OK.
-             */
-            sh("dc guest wait ${env.DCENTER_GUEST}")
-            sh("dc guest run ${env.DCENTER_GUEST} 'svcadm enable -s svc:/network/ssh:default'")
-        }
+        common.createDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST, env.DCENTER_IMAGE)
     }
 
     /*
@@ -44,14 +46,8 @@ try {
                  "${USERNAME}:${PASSWORD}:" +
                  "/opt/jdk/bin/java:/var/tmp/jenkins:sudo -u delphix sh -c ':'") {
 
-                stage('Checkout') {
-                    checkout([$class: 'GitSCM', changelog: false, poll: false,
-                              userRemoteConfigs: [[name: 'origin', url: GIT_URL, credentialsId: 'git-ci-key']],
-                              branches: [[name: GIT_BRANCH]],
-                              extensions: [[$class: 'WipeWorkspace']]])
-                }
-
                 stage('Dependencies') {
+                    unstash(name: 'walinuxagent')
                     sh('sudo pip install discover unittest2')
                 }
 
@@ -65,20 +61,8 @@ try {
     currentBuild.result = 'FAILURE'
     error = e
 } finally {
-    /*
-     * We can only use "emailext" if we're in a "node" context, so we allocate a node to satisfy that
-     * constraint, but we don't have to worry about which node we're using.
-     */
-    node {
-        emailext(to: EMAIL, body: "Please visit ${env.BUILD_URL} to inspect results.",
-                 subject: "Job ${env.JOB_NAME} #${env.BUILD_NUMBER} completed with status: ${currentBuild.result}")
-    }
-
-    stage('Destroy VM') {
-        node(env.DCENTER_HOST) {
-            sh("dc destroy ${env.DCENTER_GUEST}")
-        }
-    }
+    common.sendResults(EMAIL)
+    common.destroyDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST)
 
     if (error)
         throw error
