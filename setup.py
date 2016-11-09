@@ -3,6 +3,7 @@
 # Microsoft Azure Linux Agent setup.py
 #
 # Copyright 2013 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -138,6 +139,9 @@ def get_data_files(name, version, fullname):
         set_bin_files(data_files, dest="/usr/local/sbin")
         set_conf_files(data_files, src=["config/freebsd/waagent.conf"])
         set_rc_files(data_files)
+    elif name == 'delphix':
+        set_bin_files(data_files)
+        set_conf_files(data_files, src=["config/delphix/waagent.conf"])
     else:
         # Use default setting
         set_bin_files(data_files)

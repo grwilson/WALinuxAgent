@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +57,7 @@ class ProvisionHandler(object):
             try:
                 logger.info("Copying ovf-env.xml")
                 ovf_env = self.protocol_util.copy_ovf_env()
-                self.protocol_util.get_protocol_by_file()
+                self.get_protocol_by_file()
                 self.report_not_ready("Provisioning", "Starting")
                 logger.info("Starting provisioning")
                 self.provision(ovf_env)
@@ -77,6 +78,9 @@ class ProvisionHandler(object):
         fileutil.write_file(provisioned, "")
         self.report_ready(thumbprint)
         logger.info("Provisioning complete")
+
+    def get_protocol_by_file(self):
+        self.protocol_util.get_protocol_by_file()
 
     def reg_ssh_host_key(self):
         keypair_type = conf.get_ssh_host_keypair_type()

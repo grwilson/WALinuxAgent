@@ -27,6 +27,31 @@ class DelphixOSUtil(DefaultOSUtil):
     def __init__(self):
         super(DelphixOSUtil, self).__init__()
 
+    #
+    # The methods that emit an "error" are not expected to be called
+    # when the agent is running on Delphix. The code paths that could
+    # have called them have been disabled either by configuration file
+    # settings, or code changes to other parts of the codebase.
+    #
+
+    def useradd(self, username, expiration=None):
+        logger.error('"useradd" not supported.')
+
+    def chpasswd(self, username, password, crypt_id=6, salt_len=10):
+        logger.error('"chpasswd" not supported.')
+
+    def conf_sudoer(self, username, nopasswd=False, remove=False):
+        logger.error('"conf_sudoer" not supported.')
+
+    def conf_sshd(self, disable_password):
+        logger.error('"conf_sshd" not supported.')
+
+    def del_root_password(self):
+        logger.error('"del_root_password" not supported.')
+
+    def restart_if(self, ifname):
+        logger.error('"restart_if" not supported.')
+
     def set_hostname(self, hostname):
         shellutil.run("hostname {0}".format(hostname), chk_err=False)
         fileutil.write_file('/etc/nodename', hostname)
@@ -36,6 +61,9 @@ class DelphixOSUtil(DefaultOSUtil):
         fileutil.update_conf_file("/etc/hosts",
                                   "127.0.0.1",
                                   "127.0.0.1 {0} localhost loghost".format(hostname))
+
+    def publish_hostname(self, hostname):
+        logger.warn('"publish_hostname" not supported.')
 
     def restart_ssh_service(self):
         ret = shellutil.run('svcadm disable -s svc:/network/ssh')
@@ -47,23 +75,19 @@ class DelphixOSUtil(DefaultOSUtil):
     def is_sys_user(self, username):
         logger.warn('"is_sys_user" not supported.')
 
-    def useradd(self, username, expiration=None):
-        logger.warn('"useradd" not supported.')
-
     def del_account(self, username):
         logger.warn('"del_account" not supported.')
-
-    def chpasswd(self, username, password, crypt_id=6, salt_len=10):
-        logger.warn('"chpasswd" not supported.')
-
-    def del_root_password(self):
-        logger.warn('"del_root_password" not supported.')
 
     def deploy_ssh_pubkey(self, username, pubkey):
         logger.warn('"deploy_ssh_pubkey" not supported.')
 
     def is_selinux_system(self):
         return False
+
+    #
+    # We rely on the OS mounting and unmounting the dvd for us; thus,
+    # all of these methods are not supported.
+    #
 
     def get_dvd_device(self, dev_dir='/dev'):
         logger.warn('"get_dvd_device" not supported.')
@@ -102,9 +126,6 @@ class DelphixOSUtil(DefaultOSUtil):
     def get_dhcp_pid(self):
         ret = shellutil.run_get_output("pgrep -c $(svcs -H -o ctid svc:/network/dhcp-client)", chk_err=False)
         return ret[1] if ret[0] == 0 else None
-
-    def restart_if(self, ifname):
-        shellutil.run("ipadm disable-if -t {0} && ipadm enable-if -t {0}".format(ifname))
 
     def set_scsi_disks_timeout(self, timeout):
         logger.warn('"set_scsi_disks_timeout" not supported.')

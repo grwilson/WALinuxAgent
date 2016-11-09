@@ -28,4 +28,4 @@ class DelphixResourceDiskHandler(ResourceDiskHandler):
         super(DelphixResourceDiskHandler, self).__init__()
 
     def activate_resource_disk(self):
-        logger.warn("Activation of resource disk not supported.")
+        logger.error("Activation of resource disk not supported.")
