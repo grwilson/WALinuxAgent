@@ -1,0 +1,15 @@
+[gate]
+	name = WALinuxAgent
+	notify = prakash.surya@delphix.com
+	commit-check = skip
+	comment-check = skip
+	release-check = skip
+	review-check = skip
+[branch "projects/hyperv"]
+	gate-notify = prakash.surya@delphix.com
+	gate-user-check = on
+	gate-commit-check = skip
+	gate-comment-check = skip
+	gate-release-check = skip
+	gate-review-check = skip
+	gate-triage-check = skip
