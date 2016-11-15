@@ -168,6 +168,8 @@ def parse_args(sys_args):
             cmd = "deprovision+user"
         elif re.match("^([-/]*)deprovision", a):
             cmd = "deprovision"
+        elif re.match("^([-/]*)provision", a):
+            cmd = "provision"
         elif re.match("^([-/]*)daemon", a):
             cmd = "daemon"
         elif re.match("^([-/]*)start", a):
