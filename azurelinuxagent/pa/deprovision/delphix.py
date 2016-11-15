@@ -22,5 +22,8 @@ class DelphixDeprovisionHandler(DeprovisionHandler):
     def __init__(self):
         super(DelphixDeprovisionHandler, self).__init__()
 
-    def run(self, force=False, deluser=False):
-        logger.warn("Deprovisioning not supported.")
+    def del_dhcp_lease(self, warnings, actions):
+        logger.warn('"del_dhcp_lease" not supported.')
+
+    def del_resolv(self, warnings, actions):
+        logger.warn('"del_resolv" not supported.')
