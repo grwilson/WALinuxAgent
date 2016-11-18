@@ -31,12 +31,6 @@ pipelineJob('update-package') {
 
     }
 
-    if (System.getenv('JENKINS_DEVELOPER') == null) {
-        triggers {
-            scm('H/5 * * * *')
-        }
-    }
-
     environmentVariables {
         env('DCENTER_IMAGE', 'dlpx-trunk')
         env('DCENTER_HOST', 'dcenter')

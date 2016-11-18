@@ -8,7 +8,7 @@ common = null
 
 node {
     stage('Checkout') {
-        checkout([$class: 'GitSCM', changelog: true, poll: true,
+        checkout([$class: 'GitSCM', changelog: true, poll: false,
                   userRemoteConfigs: [[name: 'origin', url: GIT_URL, credentialsId: 'git-ci-key']],
                   branches: [[name: GIT_BRANCH]],
                   extensions: [
