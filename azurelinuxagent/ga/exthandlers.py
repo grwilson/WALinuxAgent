@@ -211,9 +211,9 @@ class ExtHandlersHandler(object):
         ext_handler_i.decide_version()
         if not ext_handler_i.is_upgrade and self.last_etag == etag:
             if self.log_etag:
-                ext_handler_i.logger.info("Version {0} is current for etag {1}",
-                                          ext_handler_i.pkg.version,
-                                          etag)
+                ext_handler_i.logger.verbose("Version {0} is current for etag {1}",
+                                             ext_handler_i.pkg.version,
+                                             etag)
                 self.log_etag = False
             return
 
@@ -360,9 +360,10 @@ class ExtHandlerInstance(object):
 
         # Determine the desired and installed versions
         requested_version = FlexibleVersion(self.ext_handler.properties.version)
-        installed_version = FlexibleVersion(self.get_installed_version())
-        if installed_version is None:
-            installed_version = requested_version
+        installed_version_string = self.get_installed_version()
+        installed_version = requested_version \
+            if installed_version_string is None \
+            else FlexibleVersion(installed_version_string)
 
         # Divide packages
         # - Find the installed package (its version must exactly match)
