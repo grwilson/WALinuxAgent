@@ -290,12 +290,21 @@ class TestExtension(AgentTestCase):
         test_data = WireProtocolData(DATA_FILE)
         exthandlers_handler, protocol = self._create_mock(test_data, *args)
         exthandlers_handler.ext_handlers, exthandlers_handler.last_etag = protocol.get_ext_handlers()
-        protocol.get_in_vm_artifacts_profile = MagicMock()
+        protocol.get_artifacts_profile = MagicMock()
         exthandlers_handler.protocol = protocol
 
+        # Disable extension handling blocking
+        conf.get_enable_overprovisioning = Mock(return_value=False)
+        with patch.object(ExtHandlersHandler, 'handle_ext_handler') as patch_handle_ext_handler:
+            exthandlers_handler.handle_ext_handlers()
+            patch_handle_ext_handler.assert_called()
+
+        # enable extension handling blocking
+        conf.get_enable_overprovisioning = Mock(return_value=True)
         with patch.object(ExtHandlersHandler, 'handle_ext_handler') as patch_handle_ext_handler:
             exthandlers_handler.handle_ext_handlers()
             patch_handle_ext_handler.assert_not_called()
+
 
     def test_handle_ext_handlers_on_hold_false(self, *args):
         test_data = WireProtocolData(DATA_FILE)
@@ -303,17 +312,20 @@ class TestExtension(AgentTestCase):
         exthandlers_handler.ext_handlers, exthandlers_handler.last_etag = protocol.get_ext_handlers()
         exthandlers_handler.protocol = protocol
 
-        #Test when is_extension_handlers_handling_on_hold returns False
+        # enable extension handling blocking
+        conf.get_enable_overprovisioning = Mock(return_value=True)
+
+        #Test when is_on_hold returns False
         from azurelinuxagent.common.protocol.wire import InVMArtifactsProfile
         mock_in_vm_artifacts_profile = InVMArtifactsProfile(MagicMock())
-        mock_in_vm_artifacts_profile.is_extension_handlers_handling_on_hold = Mock(return_value=False)
-        protocol.get_in_vm_artifacts_profile = Mock(return_value=mock_in_vm_artifacts_profile)
+        mock_in_vm_artifacts_profile.is_on_hold = Mock(return_value=False)
+        protocol.get_artifacts_profile = Mock(return_value=mock_in_vm_artifacts_profile)
         with patch.object(ExtHandlersHandler, 'handle_ext_handler') as patch_handle_ext_handler:
             exthandlers_handler.handle_ext_handlers()
             patch_handle_ext_handler.assert_called_once()
 
         #Test when in_vm_artifacts_profile is not available
-        protocol.get_in_vm_artifacts_profile = Mock(return_value=None)
+        protocol.get_artifacts_profile = Mock(return_value=None)
         with patch.object(ExtHandlersHandler, 'handle_ext_handler') as patch_handle_ext_handler:
             exthandlers_handler.handle_ext_handlers()
             patch_handle_ext_handler.assert_called_once()

@@ -44,6 +44,7 @@ http://msdn.microsoft.com/en-us/library/windowsazure/jj672979.aspx
 class ResourceDiskHandler(object):
     def __init__(self):
         self.osutil = get_osutil()
+        self.fs = conf.get_resourcedisk_filesystem()
 
     def start_activate_resource_disk(self):
         disk_thread = threading.Thread(target=self.run)
@@ -61,8 +62,7 @@ class ResourceDiskHandler(object):
         logger.info("Activate resource disk")
         try:
             mount_point = conf.get_resourcedisk_mountpoint()
-            fs = conf.get_resourcedisk_filesystem()
-            mount_point = self.mount_resource_disk(mount_point, fs)
+            mount_point = self.mount_resource_disk(mount_point)
             warning_file = os.path.join(mount_point,
                                         DATALOSS_WARNING_FILE_NAME)
             try:
@@ -83,7 +83,7 @@ class ResourceDiskHandler(object):
         except ResourceDiskError as e:
             logger.error("Failed to enable swap {0}", e)
 
-    def mount_resource_disk(self, mount_point, fs):
+    def mount_resource_disk(self, mount_point):
         device = self.osutil.device_for_ide_port(1)
         if device is None:
             raise ResourceDiskError("unable to detect disk topology")
@@ -107,9 +107,9 @@ class ResourceDiskHandler(object):
                                     "{0}: {1}".format(device, ret[1]))
 
         force_option = 'F'
-        if fs == 'xfs':
+        if self.fs == 'xfs':
             force_option = 'f'
-        mkfs_string = "mkfs.{0} {1} -{2}".format(fs, partition, force_option)
+        mkfs_string = "mkfs.{0} {1} -{2}".format(self.fs, partition, force_option)
 
         if "gpt" in ret[1]:
             logger.info("GPT detected, finding partitions")
@@ -129,12 +129,12 @@ class ResourceDiskHandler(object):
                 shellutil.run(mkfs_string)
         else:
             logger.info("GPT not detected, determining filesystem")
-            ret = shellutil.run_get_output("sfdisk -q --part-type {0} 1".format(device))
+            ret = self.change_partition_type(suppress_message=True, option_str="{0} 1".format(device))
             ptype = ret[1].strip()
-            if ptype == "7" and fs != "ntfs":
+            if ptype == "7" and self.fs != "ntfs":
                 logger.info("The partition is formatted with ntfs, updating "
                             "partition type to 83")
-                shellutil.run("sfdisk --part-type {0} 1 83".format(device))
+                self.change_partition_type(suppress_message=False, option_str="{0} 1 83".format(device))
                 logger.info("Format partition [{0}]", mkfs_string)
                 shellutil.run(mkfs_string)
             else:
@@ -171,8 +171,36 @@ class ResourceDiskHandler(object):
         logger.info("Resource disk {0} is mounted at {1} with {2}",
                     device,
                     mount_point,
-                    fs)
+                    self.fs)
         return mount_point
+
+    def change_partition_type(self, suppress_message, option_str):
+        """
+            use sfdisk to change partition type.
+            First try with --part-type; if fails, fall back to -c
+        """
+
+        command_to_use = '--part-type'
+        input = "sfdisk {0} {1} {2}".format(command_to_use, '-f' if suppress_message else '', option_str)
+        err_code, output = shellutil.run_get_output(input, chk_err=False, log_cmd=True)
+
+        # fall back to -c
+        if err_code != 0:
+            logger.info("sfdisk with --part-type failed [{0}], retrying with -c", err_code)
+            command_to_use = '-c'
+            input = "sfdisk {0} {1} {2}".format(command_to_use, '-f' if suppress_message else '', option_str)
+            err_code, output = shellutil.run_get_output(input, log_cmd=True)
+
+        if err_code == 0:
+            logger.info('{0} succeeded',
+                        input)
+        else:
+            logger.error('{0} failed [{1}: {2}]',
+                         input,
+                         err_code,
+                         output)
+
+        return err_code, output
 
     @staticmethod
     def get_mount_string(mount_options, partition, mount_point):
@@ -231,27 +259,31 @@ class ResourceDiskHandler(object):
         if os.path.isfile(filename):
             os.remove(filename)
 
-        # os.posix_fallocate
-        if sys.version_info >= (3, 3):
-            # Probable errors:
-            #  - OSError: Seen on Cygwin, libc notimpl?
-            #  - AttributeError: What if someone runs this under...
-            with open(filename, 'w') as f:
-                try:
-                    os.posix_fallocate(f.fileno(), 0, nbytes)
-                    return 0
-                except:
-                    # Not confident with this thing, just keep trying...
-                    pass
-
-        # fallocate command
+        # If file system is xfs, use dd right away as we have been reported that
+        # swap enabling fails in xfs fs when disk space is allocated with fallocate
+        ret = 0
         fn_sh = shellutil.quote((filename,))
-        ret = shellutil.run(
-            u"umask 0077 && fallocate -l {0} {1}".format(nbytes, fn_sh))
-        if ret == 0:
-            return ret
+        if self.fs != 'xfs':
+            # os.posix_fallocate
+            if sys.version_info >= (3, 3):
+                # Probable errors:
+                #  - OSError: Seen on Cygwin, libc notimpl?
+                #  - AttributeError: What if someone runs this under...
+                with open(filename, 'w') as f:
+                    try:
+                        os.posix_fallocate(f.fileno(), 0, nbytes)
+                        return 0
+                    except:
+                        # Not confident with this thing, just keep trying...
+                        pass
 
-        logger.info("fallocate unsuccessful, falling back to dd")
+            # fallocate command
+            ret = shellutil.run(
+                u"umask 0077 && fallocate -l {0} {1}".format(nbytes, fn_sh))
+            if ret == 0:
+                return ret
+
+            logger.info("fallocate unsuccessful, falling back to dd")
 
         # dd fallback
         dd_maxbs = 64 * 1024 ** 2

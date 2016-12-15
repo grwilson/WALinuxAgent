@@ -31,6 +31,7 @@ from .suse import SUSEOSUtil, SUSE11OSUtil
 from .ubuntu import UbuntuOSUtil, Ubuntu12OSUtil, Ubuntu14OSUtil, \
                     UbuntuSnappyOSUtil
 from .alpine import AlpineOSUtil
+from .bigip import BigIpOSUtil
 from .delphix import DelphixOSUtil
 
 def get_osutil(distro_name=DISTRO_NAME, distro_version=DISTRO_VERSION,
@@ -72,6 +73,8 @@ def get_osutil(distro_name=DISTRO_NAME, distro_version=DISTRO_VERSION,
             return RedhatOSUtil()
     elif distro_name == "freebsd":
         return FreeBSDOSUtil()
+    elif distro_name == "bigip":
+        return BigIpOSUtil()
     elif distro_name == "delphix":
         return DelphixOSUtil()
     else:
