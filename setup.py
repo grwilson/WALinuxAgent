@@ -142,6 +142,8 @@ def get_data_files(name, version, fullname):
     elif name == 'delphix':
         set_bin_files(data_files)
         set_conf_files(data_files, src=["config/delphix/waagent.conf"])
+        set_files(data_files, dest="/lib/svc/manifest/system/virtualization",
+                  src=["init/delphix/waagent.xml"])
     else:
         # Use default setting
         set_bin_files(data_files)
