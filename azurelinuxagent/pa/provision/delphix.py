@@ -28,12 +28,3 @@ class DelphixProvisionHandler(ProvisionHandler):
 
     def config_user_account(self, ovfenv):
         logger.info('"config_user_account" not supported.')
-
-    def get_protocol_by_file(self):
-        logger.info('"get_protocol_by_file" not supported.')
-
-    def report_not_ready(self, sub_status, description):
-        logger.info('"report_not_ready" not supported.')
-
-    def report_ready(self, thumbprint=None):
-        logger.info('"report_ready" not supported.')
