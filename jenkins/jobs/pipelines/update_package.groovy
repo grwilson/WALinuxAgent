@@ -60,6 +60,7 @@ try {
                         describe = sh(script: 'git describe --tags', returnStdout: true).trim().tokenize('-')
                         tag      = describe[0]
                         ncommits = describe[1]
+                        hash     = describe[2]
 
                         /*
                          * The tags are expected to be of the form "v2.2.0". Python packages cannot have a version
@@ -126,6 +127,19 @@ try {
                     return
 
                 stage('Update PKG') {
+                    dir("${PKG_BUILD_DIRECTORY}/lib") {
+                        /*
+                         * We need to point the package build system to the directory that was used when
+                         * uploading the source distribution. This may or may not be different than what is
+                         * already contained in the "config.sh" file, but we explicitly set it to be sure.
+                         *
+                         * Also note, we have to be a little careful about which character we use to delimit the
+                         * string passed to sed; the SDIST_MIRROR_DIRECTORY variable will almost certainly
+                         * contain the "/" character in it, so we cannot use that as the delimiter.
+                         */
+                        sh("sed -i 's|^MIRROR=.*|MIRROR=${env.SDIST_MIRROR_DIRECTORY}|' config.sh")
+                    }
+
                     dir("${PKG_BUILD_DIRECTORY}/build/walinuxagent") {
                         /*
                          * In order to create a package that contains the code that we generated above, we need
@@ -134,6 +148,16 @@ try {
                          * so) the package based on whatever version was already contained in the build.sh file.
                          */
                         sh("sed -i 's/^VER=.*/VER=${version}/' build.sh")
+
+                        /*
+                         * We specifically don't put the git SHA information into the package version number
+                         * due to certain restrictions placed on the version number by IPS and Python packaging.
+                         * But, it still would be nice to have that information encoded in the package and
+                         * easily retrievable, in case we need to map a given package, to the git commit it was
+                         * generated from. Thus, we store this information in the package's summary, such that
+                         * it can be easily viwed when running "pkg info".
+                         */
+                        sh("sed -i 's/^SUMMARY=\"\\(.*\\)\"/SUMMARY=\"\\1 (${hash})\"/' build.sh")
                     }
 
                     dir("${PKG_BUILD_DIRECTORY}/build") {
