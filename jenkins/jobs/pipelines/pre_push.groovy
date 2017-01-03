@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 by Delphix. All rights reserved.
+ * Copyright (c) 2016, 2017 by Delphix. All rights reserved.
  */
 
 currentBuild.result = 'SUCCESS'
@@ -52,7 +52,11 @@ try {
                 }
 
                 stage('Tests') {
-                    sh('python -m discover -s tests -v')
+                    parallel('Unit Tests' : {
+                        sh('python -m discover -s tests -v')
+                    }, 'SMF Validation': {
+                        sh('svccfg validate init/delphix/waagent.xml')
+                    })
                 }
             }
         }
