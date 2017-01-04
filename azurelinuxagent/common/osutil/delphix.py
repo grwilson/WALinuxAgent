@@ -52,6 +52,9 @@ class DelphixOSUtil(DefaultOSUtil):
     def restart_if(self, ifname):
         logger.error('"restart_if" not supported.')
 
+    def set_admin_access_to_ip(self, dest_ip):
+        logger.warn('"set_admin_access_to_ip" not supported.')
+
     def set_hostname(self, hostname):
         shellutil.run("hostname {0}".format(hostname), chk_err=False)
         fileutil.write_file('/etc/nodename', hostname)
