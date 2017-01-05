@@ -70,7 +70,16 @@ try {
     error = e
 } finally {
     common.sendResults(EMAIL)
-    common.destroyDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST)
+
+    /*
+     * On failure, it might be useful to have the VM around for debugging purposes (e.g. inspecting the state of
+     * the system after the unit tests run, since some of them modify the system's state), which is why we only
+     * unregister the VM when this job fails.
+     */
+    if (currentBuild.result == 'FAILURE')
+        common.unregisterDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST)
+    else
+        common.destroyDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST)
 
     if (error)
         throw error

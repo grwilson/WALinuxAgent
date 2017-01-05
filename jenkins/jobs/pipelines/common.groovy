@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 by Delphix. All rights reserved.
+ * Copyright (c) 2016, 2017 by Delphix. All rights reserved.
  */
 
 import org.apache.commons.lang.RandomStringUtils
@@ -32,6 +32,12 @@ def createDCenterGuest(String guest, String host, String image) {
 def destroyDCenterGuest(String guest, String host) {
     node(host) {
         sh("dc destroy ${guest}")
+    }
+}
+
+def unregisterDCenterGuest(String guest, String host) {
+    node(host) {
+        sh("dc unregister --ignore-missing --expires 7 ${guest}")
     }
 }
 
