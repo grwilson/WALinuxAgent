@@ -155,14 +155,14 @@ class DelphixOSUtil(DefaultOSUtil):
             except ValueError:
                 raise OSUtilError('Unable to parse existing SCSI disk timeout: "{0}".'.format(match.group(1)))
 
-            if current == timeout:
+            if current == int(timeout):
                 logger.info('Current SCSI disk timeout matches desired SCSI disk timeout, skipping.')
                 return
 
         logger.warn('Updating SCSI disk timeout to desired value of "{0}", reboot required to take effect.'.format(timeout))
         fileutil.update_conf_file('/etc/system',
                                   'set sd:sd_io_time',
-                                  'set sd:sd_io_time = {0}'.format(timeout))
+                                  'set sd:sd_io_time = {0}\n'.format(timeout))
 
     def check_pid_alive(self, pid):
         return shellutil.run("ps -p {0}".format(pid), chk_err=False) == 0
