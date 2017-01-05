@@ -57,14 +57,21 @@ class DelphixOSUtil(DefaultOSUtil):
         logger.warn('"set_admin_access_to_ip" not supported.')
 
     def set_hostname(self, hostname):
-        shellutil.run("hostname {0}".format(hostname), chk_err=False)
-        fileutil.write_file('/etc/nodename', hostname)
-        fileutil.update_conf_file("/etc/hosts",
-                                  "::1",
-                                  "::1 {0} localhost".format(hostname))
-        fileutil.update_conf_file("/etc/hosts",
-                                  "127.0.0.1",
-                                  "127.0.0.1 {0} localhost loghost".format(hostname))
+        #
+        # In order for the identity-node service to properly detect the
+        # hostname from the contents of /etc/nodename, the file needs to
+        # contain a newline after the hostname. Otherwise, the service
+        # will simply assign "unknown" as the hostname for the system.
+        #
+        fileutil.write_file('/etc/nodename', '{0}\n'.format(hostname))
+
+        ret = shellutil.run('svccfg -s svc:/system/identity:node setprop config/local_override = true')
+        if ret:
+            raise OSUtilError('Unable to set property of "svc:/system/identity:node" service.')
+
+        ret = shellutil.run('svcadm refresh svc:/system/identity:node')
+        if ret:
+            raise OSUtilError('Unable to refresh "svc:/system/identity:node" service.')
 
     def publish_hostname(self, hostname):
         logger.warn('"publish_hostname" not supported.')
