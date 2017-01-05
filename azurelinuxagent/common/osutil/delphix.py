@@ -1,7 +1,7 @@
 # Microsoft Azure Linux Agent
 #
 # Copyright 2014 Microsoft Corporation
-# Copyright (c) 2016 by Delphix. All rights reserved.
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 # Requires Python 2.4+ and Openssl 1.0+
 #
 
+import os
 import azurelinuxagent.common.utils.fileutil as fileutil
 import azurelinuxagent.common.utils.shellutil as shellutil
 import azurelinuxagent.common.logger as logger
@@ -131,7 +132,37 @@ class DelphixOSUtil(DefaultOSUtil):
         return ret[1] if ret[0] == 0 else None
 
     def set_scsi_disks_timeout(self, timeout):
-        logger.warn('"set_scsi_disks_timeout" not supported.')
+        pattern = r'^set sd:sd_io_time = (.*)$'
+        if not os.path.isfile('/etc/system'):
+            raise OSUtilError('file "/etc/system" not found, unable to set SCSI disks timeout.')
+
+        #
+        # Since changes to this setting require a reboot to take effect,
+        # we're careful to only change the value and print the warning
+        # message if the current value is different than the desired
+        # value. Essentially, we only want to print the warning message
+        # that suggest a reboot is required, if we actually modify the
+        # value that's already set; otherwise, we could unnecessarily
+        # suggest rebooting the system when that's not actually necessary.
+        #
+
+        match = fileutil.findstr_in_file('/etc/system', pattern)
+        if match:
+            logger.info('Found existing SCSI disk timeout setting: "{0}".'.format(match.group(0)))
+
+            try:
+                current = int(match.group(1))
+            except ValueError:
+                raise OSUtilError('Unable to parse existing SCSI disk timeout: "{0}".'.format(match.group(1)))
+
+            if current == timeout:
+                logger.info('Current SCSI disk timeout matches desired SCSI disk timeout, skipping.')
+                return
+
+        logger.warn('Updating SCSI disk timeout to desired value of "{0}", reboot required to take effect.'.format(timeout))
+        fileutil.update_conf_file('/etc/system',
+                                  'set sd:sd_io_time',
+                                  'set sd:sd_io_time = {0}'.format(timeout))
 
     def check_pid_alive(self, pid):
         return shellutil.run("ps -p {0}".format(pid), chk_err=False) == 0

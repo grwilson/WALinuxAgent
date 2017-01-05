@@ -53,7 +53,11 @@ try {
 
                 stage('Tests') {
                     parallel('Unit Tests' : {
-                        sh('python -m discover -s tests -v')
+                        /*
+                         * Some of the DelphixOSUtil tests must be run as root, or else they'll be skipped. As a
+                         * result, we have to run the tests using "sudo" to avoid skipping these tests.
+                         */
+                        sh('sudo python -m discover -s tests -v')
                     }, 'SMF Validation': {
                         sh('svccfg validate init/delphix/waagent.xml')
                     })

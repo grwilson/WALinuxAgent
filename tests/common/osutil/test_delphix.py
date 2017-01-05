@@ -1,5 +1,5 @@
 # Copyright 2014 Microsoft Corporation
-# Copyright (c) 2016 by Delphix. All rights reserved.
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,6 +66,29 @@ class TestOSUtil(AgentTestCase):
             self.fail("Cannot retrive ssh pid after restart.")
 
         self.assertNotEqual(pid_before, pid_after)
+
+    @unittest.skipUnless(os.getuid() == 0, 'test must be run as root')
+    def test_set_scsi_disks_timeout(self):
+        cmd = "grep sd:sd_io_time /etc/system"
+
+        ret = shellutil.run_get_output(cmd)
+        if ret[0] == 0:
+            old_timeout = int(ret[1].split()[3])
+        else:
+            self.fail("Cannot retrive old timeout.")
+
+        set_timeout = old_timeout + 1
+        osutil.DelphixOSUtil().set_scsi_disks_timeout(set_timeout)
+
+        ret = shellutil.run_get_output(cmd)
+        if ret[0] == 0:
+            new_timeout = int(ret[1].split()[3])
+        elif retry <= 0:
+            self.fail("Cannot retrive new timeout.")
+
+        self.assertNotEqual(old_timeout, set_timeout)
+        self.assertNotEqual(old_timeout, new_timeout)
+        self.assertEqual(set_timeout, new_timeout)
 
     def test_get_first_if(self):
         ifname, ipaddr = osutil.DelphixOSUtil().get_first_if()
