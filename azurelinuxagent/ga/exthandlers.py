@@ -107,7 +107,8 @@ def parse_ext_status(ext_status, data):
     if substatus_list is None:
         return
     for substatus in substatus_list:
-        ext_status.substatusList.append(parse_ext_substatus(substatus))
+        if substatus is not None:
+            ext_status.substatusList.append(parse_ext_substatus(substatus))
 
 # This code migrates, if it exists, handler state and status from an
 # agent-owned directory into the handler-owned config directory
@@ -669,7 +670,7 @@ class ExtHandlerInstance(object):
             ext_status.message = u"Failed to get status file {0}".format(e)
             ext_status.code = -1
             ext_status.status = "error"
-        except ValueError as e:
+        except (ExtensionError, ValueError) as e:
             ext_status.message = u"Malformed status file {0}".format(e)
             ext_status.code = -1
             ext_status.status = "error"
@@ -807,6 +808,9 @@ class ExtHandlerInstance(object):
     def set_handler_state(self, handler_state):
         state_dir = self.get_conf_dir()
         try:
+            if not os.path.exists(state_dir):
+                fileutil.mkdir(state_dir, mode=0o700)
+
             state_file = os.path.join(state_dir, "HandlerState")
             fileutil.write_file(state_file, handler_state)
         except IOError as e:

@@ -84,7 +84,8 @@ class Redhat6xOSUtil(DefaultOSUtil):
     def set_dhcp_hostname(self, hostname):
         ifname = self.get_if_name()
         filepath = "/etc/sysconfig/network-scripts/ifcfg-{0}".format(ifname)
-        fileutil.update_conf_file(filepath, 'DHCP_HOSTNAME',
+        fileutil.update_conf_file(filepath,
+                                  'DHCP_HOSTNAME',
                                   'DHCP_HOSTNAME={0}'.format(hostname))
 
     def get_dhcp_lease_endpoint(self):
@@ -96,10 +97,9 @@ class RedhatOSUtil(Redhat6xOSUtil):
 
     def set_hostname(self, hostname):
         """
-        Set /etc/hostname
-        Unlike redhat 6.x, redhat 7.x will set hostname to /etc/hostname
+        Unlike redhat 6.x, redhat 7.x will set hostname via hostnamectl
         """
-        DefaultOSUtil.set_hostname(self, hostname)
+        shellutil.run("hostnamectl set-hostname {0}".format(hostname))
 
     def publish_hostname(self, hostname):
         """
@@ -118,5 +118,11 @@ class RedhatOSUtil(Redhat6xOSUtil):
         DefaultOSUtil.openssl_to_openssh(self, input_file, output_file)
 
     def get_dhcp_lease_endpoint(self):
-        # centos7 has this weird naming with double hyphen like /var/lib/dhclient/dhclient--eth0.lease
-        return self.get_endpoint_from_leases_path('/var/lib/dhclient/dhclient-*.lease')
+        # dhclient
+        endpoint = self.get_endpoint_from_leases_path('/var/lib/dhclient/dhclient-*.lease')
+
+        if endpoint is None:
+            # NetworkManager
+            endpoint = self.get_endpoint_from_leases_path('/var/lib/NetworkManager/dhclient-*.lease')
+
+        return endpoint
