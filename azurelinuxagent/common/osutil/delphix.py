@@ -101,6 +101,14 @@ class DelphixOSUtil(DefaultOSUtil):
             raise OSUtilError('Unable to modify hostname to the desired value')
 
     def publish_hostname(self, hostname):
+        #
+        # We intentionally leave this method unimplemented as we don't
+        # rely on the DHCP for providing the system's hostname. Instead,
+        # we rely on the "set_hostname" function to configure the
+        # "/etc/nodename" file, as well as configure the "identity:node"
+        # service to always use that file's contents to configure the
+        # hostname of the system.
+        #
         logger.warn('"publish_hostname" not supported.')
 
     def restart_ssh_service(self):
