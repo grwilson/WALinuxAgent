@@ -118,6 +118,21 @@ class DelphixOSUtil(DefaultOSUtil):
         else:
             return ret
 
+    def get_dhcp_lease_endpoint(self):
+        ret = shellutil.run_get_output('/sbin/dhcpinfo 245')
+
+        #
+        # The dhcpinfo command can fail if the Azure specific DHCP
+        # option of 245 isn't contained in the /etc/dhcp/inittab file.
+        # Additionally, if the command succeeds, it's possible that the
+        # option wasn't found, in which case dhcpinfo will produce no
+        # output.
+        #
+        if ret[0] == 0 and ret[1] != '':
+            return ret[1].strip()
+        else:
+            return None
+
     def is_sys_user(self, username):
         logger.warn('"is_sys_user" not supported.')
 
