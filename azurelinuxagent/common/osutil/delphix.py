@@ -55,6 +55,18 @@ class DelphixOSUtil(DefaultOSUtil):
     def restart_if(self, ifname):
         logger.error('"restart_if" not supported.')
 
+    def start_agent_service(self):
+        return shellutil.run("svcadm enable -t svc:/system/virtualization/waagent", chk_err=False)
+
+    def stop_agent_service(self):
+        return shellutil.run("svcadm disable -t svc:/system/virtualization/waagent", chk_err=False)
+
+    def register_agent_service(self):
+        return shellutil.run("svcadm enable svc:/system/virtualization/waagent", chk_err=False)
+
+    def unregister_agent_service(self):
+        return shellutil.run("svcadm disable svc:/system/virtualization/waagent", chk_err=False)
+
     def set_admin_access_to_ip(self, dest_ip):
         logger.warn('"set_admin_access_to_ip" not supported.')
 
@@ -111,6 +123,14 @@ class DelphixOSUtil(DefaultOSUtil):
         # hostname of the system.
         #
         logger.warn('"publish_hostname" not supported.')
+
+    def set_dhcp_hostname(self, hostname):
+        #
+        # We initentionally leave this function unimplemented, for the
+        # same reason that we leave "publish_hostname" unimplemented;
+        # see the comment in that function for more details.
+        #
+        logger.warn('"set_dhcp_hostname" not supported.')
 
     def restart_ssh_service(self):
         ret = shellutil.run('svcadm disable -s svc:/network/ssh')

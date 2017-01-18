@@ -1,5 +1,5 @@
 # Copyright 2014 Microsoft Corporation
-# Copyright (c) 2016 by Delphix. All rights reserved.
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ from .default import DeprovisionHandler
 from .clearlinux import ClearLinuxDeprovisionHandler
 from .coreos import CoreOSDeprovisionHandler
 from .ubuntu import UbuntuDeprovisionHandler
-from .delphix import DelphixDeprovisionHandler
 
 def get_deprovision_handler(distro_name=DISTRO_NAME, 
                             distro_version=DISTRO_VERSION,
@@ -36,8 +35,6 @@ def get_deprovision_handler(distro_name=DISTRO_NAME,
         return CoreOSDeprovisionHandler()
     if distro_name == "clear linux":
         return ClearLinuxDeprovisionHandler()
-    if distro_name == "delphix":
-        return DelphixDeprovisionHandler()
 
     return DeprovisionHandler()
 

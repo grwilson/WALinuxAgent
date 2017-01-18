@@ -1,6 +1,7 @@
 # Microsoft Azure Linux Agent
 #
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,7 +76,9 @@ class DeprovisionHandler(object):
         actions.append(DeprovisionAction(self.osutil.stop_agent_service))
 
     def del_files(self, warnings, actions):
-        files_to_del = ['/root/.bash_history', '/var/log/waagent.log']
+        files_to_del = ['/root/.bash_history',
+                        '/export/home/delphix/.bash_history',
+                        '/var/log/waagent.log']
         actions.append(DeprovisionAction(fileutil.rm_files, files_to_del))
 
     def del_resolv(self, warnings, actions):
@@ -90,7 +93,8 @@ class DeprovisionHandler(object):
 
         # For Freebsd, NM controlled
         actions.append(DeprovisionAction(fileutil.rm_files, ["/var/db/dhclient.leases.hn0",
-                                                             "/var/lib/NetworkManager/dhclient-*.lease"]))
+                                                             "/var/lib/NetworkManager/dhclient-*.lease",
+                                                             "/etc/dhcp/*.dhc"]))
 
     def del_lib_dir(self, warnings, actions):
         dirs_to_del = [conf.get_lib_dir()]
