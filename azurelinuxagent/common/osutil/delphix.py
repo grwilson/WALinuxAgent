@@ -20,6 +20,7 @@
 
 import os
 import time
+from azurelinuxagent.common.exception import OSUtilError
 import azurelinuxagent.common.utils.fileutil as fileutil
 import azurelinuxagent.common.utils.shellutil as shellutil
 import azurelinuxagent.common.logger as logger
@@ -117,6 +118,15 @@ class DelphixOSUtil(DefaultOSUtil):
             return shellutil.run('svcadm enable -s svc:/network/ssh')
         else:
             return ret
+
+    def enable_serial_console(self):
+        logger.info('Attempting to enable serial console.')
+
+        ret = shellutil.run('/opt/delphix/server/bin/enable_serial_console')
+        if ret == 0:
+            logger.info('Serial console enabled; reboot required to take effect.')
+        else:
+            raise OSUtilError('Failed to enable serial console.')
 
     def get_dhcp_lease_endpoint(self):
         ret = shellutil.run_get_output('/sbin/dhcpinfo 245')

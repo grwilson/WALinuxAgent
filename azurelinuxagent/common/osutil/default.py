@@ -1,5 +1,6 @@
 #
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -629,6 +630,9 @@ class DefaultOSUtil(object):
         pass
 
     def restart_ssh_service(self):
+        pass
+
+    def enable_serial_console(self):
         pass
 
     def route_add(self, net, mask, gateway):

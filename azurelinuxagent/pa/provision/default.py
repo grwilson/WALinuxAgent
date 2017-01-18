@@ -1,5 +1,6 @@
+#
 # Copyright 2014 Microsoft Corporation
-# Copyright (c) 2016 by Delphix. All rights reserved.
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,6 +62,7 @@ class ProvisionHandler(object):
                 self.report_not_ready("Provisioning", "Starting")
                 logger.info("Starting provisioning")
                 self.provision(ovf_env)
+                self.osutil.enable_serial_console()
                 thumbprint = self.reg_ssh_host_key()
                 self.osutil.restart_ssh_service()
                 self.report_event("Provision succeed", is_success=True)
