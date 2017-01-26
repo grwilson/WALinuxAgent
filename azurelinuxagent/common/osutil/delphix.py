@@ -214,12 +214,6 @@ class DelphixOSUtil(DefaultOSUtil):
     def allow_dhcp_broadcast(self):
         pass
 
-    def remove_rules_files(self, rules_files=__RULES_FILES__):
-        pass
-
-    def restore_rules_files(self, rules_files=__RULES_FILES__):
-        pass
-
     def get_dhcp_pid(self):
         ret = shellutil.run_get_output("pgrep -c $(svcs -H -o ctid svc:/network/dhcp-client)", chk_err=False)
         return ret[1] if ret[0] == 0 else None
