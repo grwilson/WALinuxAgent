@@ -33,7 +33,13 @@ following purposes:
 ### Supported Features
 
 The following are all features that are supported when running the
-Microsoft Azure Agent on Delphix.
+Microsoft Azure Agent on Delphix:
+
+  * Setting the VM's Hostname
+  * Reporting SSH Host Key Fingerprint to the Platform
+  * Console redirection to the serial port
+  * Manages routes to improve compatibility with platform DHCP servers
+  * Configure SCSI timeouts for the root device (which could be remote)
 
 #### Setting the VM's Hostname
 
@@ -43,20 +49,29 @@ process, which occurs the first time the VM boots, this value will be
 communicated to the Agent which will then configure the system's
 hostname to match this value.
 
-#### Reporting SSH Host Key Fingerprint to the Platform
-
-As the final step of the provisioning process for a newly created
-VM running on Azure, the Agent will communicate the VM's SSH host key
-fingerprint as it reports the system to be "ready" (or not).
-
 #### Console redirection to the serial port
 
-TODO: Add more information.
+During the VM provisioning process, the bootloader configuration is
+modified using the command:
+
+    /opt/delphix/server/bin/enable_serial_console
+
+which will configure the kernel to use the serial console. After this
+command is run, though, a reboot is required for the new configuration
+to take effect.
 
 ### Unsupported Features
 
 The following are all features that are *not* supported when running the
-Microsoft Azure Agent on Delphix.
+Microsoft Azure Agent on Delphix:
+
+  * Creation of Non-Root User Account
+  * Configuring SSH Authentication Types
+  * Deployment of SSH Public Keys and Key Pairs
+  * Publishing the Hostname to the Platform DNS
+  * Resource Disk Management
+  * Formatting and Mounting the Resource Disk
+  * Configuring Swap Space
 
 #### Creation of Non-Root User Account
 
@@ -143,28 +158,76 @@ See [here](#resource-disk-management) for more information.
 This feature is disabled since swap space will automatically be
 configured on a Delphix system, without needing help from the Agent.
 
-#### Manages routes to improve compatibility with platform DHCP servers
+### Modifications Required to Support Delphix
 
-TODO: Add more information.
+The modifications to the Azure Agent that were needed to support running
+on Delphix generally fall into the following categories:
 
-#### Ensures the stability of the network interface name
+  * Implement the platform specific "OSUtil" class for Delphix
+  * Implement unit tests for the new Delphix specific "OSUtil" class
+  * Modify "version.py" to detect the Delphix platform
+  * Modify "setup.py" to properly build on the Delphix platform
+  * Add SMF manifest for executing the Agent as an SMF service.
+  * Add Jenkins automation for:
+    - running the unit tests on a DCenter based Delphix VM
+    - building an IPS package and updating the internal IPS repository
 
-TODO: Add more information.
+#### Platform Specific "OSUtil" Class for Delphix
 
-#### Configure virtual NUMA
+The implementation of the Agent is architected in such a way that makes
+it easy for it to support multiple different operating systems. Most, if
+not all, of the platform specific parts of the Agent is encapsulated
+into "OSUtil" classes for each platform. As an example, there's a
+`DefaultOSUtil` class that targets functionality that is common to most
+Linux distributions, but then there's classes like `RedhatOSUtil`,
+`SUSEOSUtil`, and `UbuntuOSUtil` that implement the necessary parts that
+are unique to each distribution. Additionally, there's a `FreeBSDOSUtil`
+that provides implementation that's specific to FreeBSD.
 
-TODO: Add more information.
+These "OSUtil" classes all inherit from the base `DefaultOSUtil` class,
+and class is used in a polymorphic way; consumers simply call
+`get_osutil` and the returned object will be of the correct type (e.g.
+a `FreeBSDOSUtil` will be returned if the Agent is running on FreeBSD).
+This allows each platform to implement the interface of the "OSUtil"
+class in any way that makes sense for that specific platform, and the
+consumers of the interface don't have to have any knowledge of the
+specific "OSUtil" class being used. Consumers just consume the interface
+provided by the platform agnostic `DefaultOSUtil` class.
 
-#### Consume Hyper-V entropy for /dev/random
+Thus, to support the Delphix platform, the new `DelphixOSUtil` class was
+needed to implement the `DefaultOSUtil` interface. Since the default
+implementaiton targetting the GNU/Linux platform(s), without a Delphix
+specific class, the Agent would attempt to perform logic and run
+commands that wasn't compatible with Delphix.
 
-TODO: Add more information.
+For example, when setting SCSI timeouts, the default implementation for
+the `set_scsi_disks_timeout` function would attempt to write to files
+under the `/sys/block` directory. On Delphix, SCSI timeouts are
+configured by adding the appropriate configuration to the `/etc/system`
+file. Differences like that had to be reconciled by re-implementing
+parts of the `DefaultOSUtil` interface using the new `DelphixOSUtil`
+class.
 
-#### Configure SCSI timeouts for the root device (which could be remote)
+The implementation for the `DefaultOSUtil` class can be found
+[here](azurelinuxagent/common/osutil/default.py), and the
+implementation for the `DelphixOSUtil` class can be found
+[here](azurelinuxagent/common/osutil/delphix.py).
 
-TODO: Add more information.
+#### Unit Tests for the Delphix Specific "OSUtil" Class
 
+In addition to the implementation `DelphixOSUtil` class, there's also
+logic with the specific intention of unit testing that class. These test
+cases assume that they're running on a Delphix system, and can be found
+[here](tests/common/osutil/test_delphix.py). Additionally, they attempt
+to follow the convention put in place by the test cases targetting the
+`DefaultOSUtil` class found [here](tests/common/osutil/test_default.py).
 
-#### VM Extension
+#### Detecting the Delphix Platform
 
-TODO: Add more information.
-
+In order for the Agent to use the correct "OSUtil" class for the
+platform that it is running on, it has to detect the platform it's
+running on to make that decision. The logic for performing this decision
+occurs in the `get_distro` function of the "version.py" file; that file
+can be found [here](azurelinuxagent/common/version.py). To support
+running on Delphix, the logic in that function had to be extended to
+detect when it's running on Delphix.
