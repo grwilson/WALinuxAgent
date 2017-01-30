@@ -258,62 +258,66 @@ The actual SMF manifest for the agent can be found
 ### Supporting Development and Maintenance via Jenkins Automation
 
 The following is a list of the Jenkins automation that was created to
-help support the development and maintenance of the Agent:
+help support the development and maintenance of the Agent.
 
-  * **pre-push** - This job is intended to be used to help validate
-    proposed changes to the Agent. It will create a DCenter based
-    Delphix VM and run the unit tests inside of that VM; reporting
-    success or failure based on whether any of the unit tests failed.
+#### Jenkins Job: "pre-push"
 
-    While the intention is for this job to be used to gauge whether any
-    given change to the agent is "safe" to be landed, the test coverage
-    isn't nearly sufficient enough to provide that gaurantee. This job
-    should always pass prior to integration of any change to the Agent
-    (i.e. the unit tests should always pass), but it's still necessary
-    to install the agent on an Azure based Delphix system, and perform
-    manual testing and verification of the Agent's functionality.
+This job is intended to be used to help validate proposed changes to
+the Agent. It will create a DCenter based Delphix VM and run the unit
+tests inside of that VM; reporting success or failure based on whether
+any of the unit tests failed.
 
-    Additionally, there's a "git-utils" command that can be used to
-    trigger this job against code that is under development; for
-    example:
+While the intention is for this job to be used to gauge whether any
+given change to the agent is "safe" to be landed, the test coverage
+isn't nearly sufficient enough to provide that gaurantee. This job
+should always pass prior to integration of any change to the Agent
+(i.e. the unit tests should always pass), but it's still necessary to
+install the agent on an Azure based Delphix system, and perform manual
+testing and verification of the Agent's functionality.
 
-        $ git walinuxagent-pre-push
-        Your build is at: http://azure.jenkins.delphix.com/job/WALinuxAgent/job/projects/job/hyperv/job/pre-push/44/
+Additionally, there's a "git-utils" command that can be used to trigger
+this job against code that is under development; for example:
 
-    This will create a Delphix VM, push the developer's code to that VM,
-    and then execute the Agent's unit tests. When the Jenkins job
-    finishes, the developer will receive an email reporting on the
-    success or failure of the job.
+    $ git walinuxagent-pre-push
+    Your build is at: http://azure.jenkins.delphix.com/job/WALinuxAgent/job/projects/job/hyperv/job/pre-push/44/
 
-  * **update-package** - This job is intended to generate an IPS package
-    from the Agent's codebase, and then update Delphix's internal IPS
-    repository with this package, such that this new version of the
-    Agent will be installed the next time a Delphix ISO is generated.
+This will create a Delphix VM, push the developer's code to that VM, and
+then execute the Agent's unit tests. When the Jenkins job finishes, the
+developer will receive an email reporting on the success or failure of
+the job.
 
-    This job works by performing the following series of steps:
+#### Jenkins Job: "update-package"
 
-      1. Generate a "source distribution" ("sdist") from the codebase
-      2. Upload that "sdist" to Delphix's "third party mirror"
-      3. Use Delphix's "pkg-build-gate" to convert the "sdist" into an
-         IPS package
-      4. Upload the generated IPS package to Delphix's IPS repository
+This job is intended to generate an IPS package from the Agent's
+codebase, and then update Delphix's internal IPS repository with this
+package, such that this new version of the Agent will be installed the
+next time a Delphix ISO is generated.
 
-    After the new package is uploaded to the IPS repository, the work
-    of this job is done; the new package version will be automatically
-    picked up via the Delphix nighly build.
+This job works by performing the following series of steps:
 
-  * **post-push** - The intention for this job is to run on each commit
-    to the "project/hyperv" branch of the Agent, automatically
-    performing any actions that are useful to execute after changes are
-    commited to the Agent.
+  1. Generate a "source distribution" ("sdist") from the codebase
+  2. Upload that "sdist" to Delphix's "third party mirror"
+  3. Use Delphix's "pkg-build-gate" to convert the "sdist" into an
+     IPS package
+  4. Upload the generated IPS package to Delphix's IPS repository
 
-    Specifically, we use this to execute the "pre-push" and
-    "update-package" jobs against all changes that get committed to the
-    Agent. This means Delphix's IPS repository should always contain a
-    package for the most recent version of the Agent, and also helps
-    ensure the code committed doesn't regress on our "pre-push" test
-    suite.
+After the new package is uploaded to the IPS repository, the work of
+this job is done; the new package version will be automatically picked
+up via the Delphix nighly build.
 
-    If the "post-push" job fails, the maintainer of the Agent will be
-    emailed, such that the appropriate action can be taken to remedy the
-    situation.
+#### Jenkins job: "post-push"
+
+The intention for this job is to run on each commit to the
+"project/hyperv" branch of the Agent, automatically performing any
+actions that are useful to execute after changes are commited to the
+Agent.
+
+Specifically, we use this to execute the "pre-push" and "update-package"
+jobs against all changes that get committed to the Agent. This means
+Delphix's IPS repository should always contain a package for the most
+recent version of the Agent, and also helps ensure the code committed
+doesn't regress on our "pre-push" test suite.
+
+If the "post-push" job fails, the maintainer of the Agent will be
+emailed, such that the appropriate action can be taken to remedy the
+situation.
