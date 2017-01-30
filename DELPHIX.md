@@ -17,29 +17,19 @@ following purposes:
   * Provide insight into the modifications that we made to the Agent,
     to enable it to work when running on Delphix.
 
-  * List the various tools and automation that has been created to
+  * List the various tools and automation that have been created to
     help aid development, stability, and maintenance of the Agent.
-
-  * Provide basic, high-level instructions and/or tips for making
-    modifications to the project; information that would be useful to
-    new developers looking to work on this codebase.
-
-  * Explain how the Agent is versioned, packaged, installed, and
-    executed on Delphix.
-
-  * Add commentary regarding any implementation details that pertain to
-    pushing our modifications upstream.
 
 ### Supported Features
 
 The following are all features that are supported when running the
 Microsoft Azure Agent on Delphix:
 
-  * Setting the VM's Hostname
-  * Reporting SSH Host Key Fingerprint to the Platform
+  * Setting the VM's hostname
+  * Reporting SSH host key fingerprint to the Azure environment
   * Console redirection to the serial port
-  * Manages routes to improve compatibility with platform DHCP servers
-  * Configure SCSI timeouts for the root device (which could be remote)
+  * Manages routes to improve compatibility with Azure DHCP servers
+  * Configuration of SCSI timeouts for the root device
 
 #### Setting the VM's Hostname
 
@@ -65,13 +55,13 @@ to take effect.
 The following are all features that are *not* supported when running the
 Microsoft Azure Agent on Delphix:
 
-  * Creation of Non-Root User Account
-  * Configuring SSH Authentication Types
-  * Deployment of SSH Public Keys and Key Pairs
-  * Publishing the Hostname to the Platform DNS
-  * Resource Disk Management
-  * Formatting and Mounting the Resource Disk
-  * Configuring Swap Space
+  * Creation of non-root user account
+  * Configuring SSH authentication types
+  * Deployment of SSH public Keys and key pairs
+  * Publishing the hostname to the Azure DNS
+  * Resource disk management
+  * Formatting and mounting the resource disk
+  * Configuring swap space
 
 #### Creation of Non-Root User Account
 
@@ -138,10 +128,10 @@ the provisioning of the VM.
 
 #### Resource Disk Management
 
-The Microsoft Azure platform supports the notion of a "resource disk"
-that is a temporary disk attached to VMs, whose purpose is to be used to
-store temporary data which one can afford to lose at any time, but can
-have higher IOPs and lower latency when comparied to the persistent
+The Microsoft Azure platform supports the notion of a "resource disk",
+which is a temporary disk attached to VMs, whose purpose is to be used
+to store temporary data which one can afford to lose at any time, but
+can have higher IOPs and lower latency when comparied to the persistent
 disk(s) attached to the VM. The Delphix Engine isn't capable of
 utilizing such a disk, so managing this additional device isn't
 supported.
@@ -185,18 +175,18 @@ are unique to each distribution. Additionally, there's a `FreeBSDOSUtil`
 that provides implementation that's specific to FreeBSD.
 
 These "OSUtil" classes all inherit from the base `DefaultOSUtil` class,
-and class is used in a polymorphic way; consumers simply call
-`get_osutil` and the returned object will be of the correct type (e.g.
-a `FreeBSDOSUtil` will be returned if the Agent is running on FreeBSD).
-This allows each platform to implement the interface of the "OSUtil"
-class in any way that makes sense for that specific platform, and the
-consumers of the interface don't have to have any knowledge of the
-specific "OSUtil" class being used. Consumers just consume the interface
-provided by the platform agnostic `DefaultOSUtil` class.
+which is used in a polymorphic way; consumers simply call `get_osutil`
+and the returned object will be of the correct type (e.g. a
+`FreeBSDOSUtil` will be returned if the Agent is running on FreeBSD).
+This allows each platform must implement the interface of the
+`DefaultOSUtil` class in any way that makes sense for that specific
+platform. The consumers of the interface don't have to have any
+knowledge of the specific sub-class of the `DefaultOSUtil` being used;
+they just use the opaque interface provided.
 
 Thus, to support the Delphix platform, the new `DelphixOSUtil` class was
 needed to implement the `DefaultOSUtil` interface. Since the default
-implementaiton targetting the GNU/Linux platform(s), without a Delphix
+implementation targets the GNU/Linux platform(s), without a Delphix
 specific class, the Agent would attempt to perform logic and run
 commands that wasn't compatible with Delphix.
 
@@ -215,7 +205,7 @@ implementation for the `DelphixOSUtil` class can be found
 
 #### Unit Tests for the Delphix Specific "OSUtil" Class
 
-In addition to the implementation `DelphixOSUtil` class, there's also
+In addition to the implementation of `DelphixOSUtil` class, there's also
 logic with the specific intention of unit testing that class. These test
 cases assume that they're running on a Delphix system, and can be found
 [here](tests/common/osutil/test_delphix.py). Additionally, they attempt
@@ -224,10 +214,106 @@ to follow the convention put in place by the test cases targetting the
 
 #### Detecting the Delphix Platform
 
-In order for the Agent to use the correct "OSUtil" class for the
-platform that it is running on, it has to detect the platform it's
-running on to make that decision. The logic for performing this decision
-occurs in the `get_distro` function of the "version.py" file; that file
-can be found [here](azurelinuxagent/common/version.py). To support
-running on Delphix, the logic in that function had to be extended to
-detect when it's running on Delphix.
+In order for the Agent to use the correct `DefaultOSUtil` sub-class for
+the platform that it is running on, it has to properly detect the
+platform it's running on to make that decision. The logic of this
+decision is found in the `get_distro` function of the "version.py" file,
+and it had to be extended to detect when it's running on Delphix. That
+file can be found  [here](azurelinuxagent/common/version.py).
+
+#### Add Delphix Specific Packaging Steps
+
+The existing Python build system for the Agent has the notion of
+generating a "source distribution" (or "sdist") that is specific to each
+supported platform. The logic for generating "sdist" is contained in the
+"setup.py" file ([here](setup.py)), and minimal support had to be added
+specific for Delphix. The following are specific to generating the
+"sdist" for Delphix:
+
+  1. The correct "waagent.conf" file is included; i.e.
+     [config/delphix/waagent.conf](config/delphix/waagent.conf).
+
+  2. The SMF service manifest is included; i.e.
+     [init/delphix/waagent.xml](init/delphix/waagent.xml).
+
+#### Executing the Azure Agent as a SMF Service
+
+When the Agent is installed on Delphix, the intention is for it to be
+executed via a SMF service. By default, the Agent's SMF service will be
+installed but remain disabled, so it requires manual intervention by
+some external entity to enable the service.
+
+The decision was made to go this route (keeping the service disabled by
+default), such that the Agent package could be installed on Delphix
+images that do not intend to run in Azure, without worrying about the
+implications of running the Agent outside of the Azure environment. The
+assumption being, the Delphix software will detect if it's running in
+Azure, and selectively enable the Agent's SMF service when this true;
+and do so very early in the boot/initialization process of the Delphix
+system.
+
+The actual SMF manifest for the agent can be found
+[here](init/delphix/waagent.xml).
+
+### Supporting Development and Maintenance via Jenkins Automation
+
+The following is a list of the Jenkins automation that was created to
+help support the development and maintenance of the Agent:
+
+  * **pre-push** - This job is intended to be used to help validate
+    proposed changes to the Agent. It will create a DCenter based
+    Delphix VM and run the unit tests inside of that VM; reporting
+    success or failure based on whether any of the unit tests failed.
+
+    While the intention is for this job to be used to gauge whether any
+    given change to the agent is "safe" to be landed, the test coverage
+    isn't nearly sufficient enough to provide that gaurantee. This job
+    should always pass prior to integration of any change to the Agent
+    (i.e. the unit tests should always pass), but it's still necessary
+    to install the agent on an Azure based Delphix system, and perform
+    manual testing and verification of the Agent's functionality.
+
+    Additionally, there's a "git-utils" command that can be used to
+    trigger this job against code that is under development; for
+    example:
+
+        $ git walinuxagent-pre-push
+        Your build is at: http://azure.jenkins.delphix.com/job/WALinuxAgent/job/projects/job/hyperv/job/pre-push/44/
+
+    This will create a Delphix VM, push the developer's code to that VM,
+    and then execute the Agent's unit tests. When the Jenkins job
+    finishes, the developer will receive an email reporting on the
+    success or failure of the job.
+
+  * **update-package** - This job is intended to generate an IPS package
+    from the Agent's codebase, and then update Delphix's internal IPS
+    repository with this package, such that this new version of the
+    Agent will be installed the next time a Delphix ISO is generated.
+
+    This job works by performing the following series of steps:
+
+      1. Generate a "source distribution" ("sdist") from the codebase
+      2. Upload that "sdist" to Delphix's "third party mirror"
+      3. Use Delphix's "pkg-build-gate" to convert the "sdist" into an
+         IPS package
+      4. Upload the generated IPS package to Delphix's IPS repository
+
+    After the new package is uploaded to the IPS repository, the work
+    of this job is done; the new package version will be automatically
+    picked up via the Delphix nighly build.
+
+  * **post-push** - The intention for this job is to run on each commit
+    to the "project/hyperv" branch of the Agent, automatically
+    performing any actions that are useful to execute after changes are
+    commited to the Agent.
+
+    Specifically, we use this to execute the "pre-push" and
+    "update-package" jobs against all changes that get committed to the
+    Agent. This means Delphix's IPS repository should always contain a
+    package for the most recent version of the Agent, and also helps
+    ensure the code committed doesn't regress on our "pre-push" test
+    suite.
+
+    If the "post-push" job fails, the maintainer of the Agent will be
+    emailed, such that the appropriate action can be taken to remedy the
+    situation.
