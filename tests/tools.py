@@ -20,11 +20,9 @@
 Define util functions for unit test
 """
 
-import json
 import os
 import re
 import shutil
-import sys
 import tempfile
 
 #Import unittest2 for Python 2.6 and unittest for Python 2.7+
@@ -36,7 +34,6 @@ except ImportError:
 from functools import wraps
 
 import azurelinuxagent.common.conf as conf
-import azurelinuxagent.common.event as event
 import azurelinuxagent.common.logger as logger
 from azurelinuxagent.common.version import PY_VERSION_MAJOR
 

@@ -209,18 +209,18 @@ class ExtHandlersHandler(object):
     def handle_ext_handler(self, ext_handler, etag):
         ext_handler_i = ExtHandlerInstance(ext_handler, self.protocol)
 
-        ext_handler_i.decide_version()
-        if not ext_handler_i.is_upgrade and self.last_etag == etag:
-            if self.log_etag:
-                ext_handler_i.logger.verbose("Version {0} is current for etag {1}",
-                                             ext_handler_i.pkg.version,
-                                             etag)
-                self.log_etag = False
-            return
-
-        self.log_etag = True
-
         try:
+            ext_handler_i.decide_version()
+            if not ext_handler_i.is_upgrade and self.last_etag == etag:
+                if self.log_etag:
+                    ext_handler_i.logger.verbose("Version {0} is current for etag {1}",
+                                                 ext_handler_i.pkg.version,
+                                                 etag)
+                    self.log_etag = False
+                return
+
+            self.log_etag = True
+
             state = ext_handler.properties.state
             ext_handler_i.logger.info("Expected handler state: {0}", state)
             if state == "enabled":
@@ -282,12 +282,8 @@ class ExtHandlersHandler(object):
         ext_handler_i.rm_ext_handler_dir()
     
     def report_ext_handlers_status(self):
-        """Go thru handler_state dir, collect and report status"""
-        vm_status = VMStatus()
-        vm_status.vmAgent.version = str(CURRENT_VERSION)
-        vm_status.vmAgent.status = "Ready"
-        vm_status.vmAgent.message = "Guest Agent is running"
-
+        """Go through handler_state dir, collect and report status"""
+        vm_status = VMStatus(status="Ready", message="Guest Agent is running")
         if self.ext_handlers is not None:
             for ext_handler in self.ext_handlers.extHandlers:
                 try:
@@ -298,7 +294,7 @@ class ExtHandlersHandler(object):
                         version=CURRENT_VERSION,
                         is_success=False,
                         message=ustr(e))
-        
+
         logger.verbose("Report vm agent status")
         try:
             self.protocol.report_vm_status(vm_status)
@@ -331,7 +327,8 @@ class ExtHandlersHandler(object):
                 ext_handler_i.set_handler_status(message=ustr(e), code=-1)
 
         vm_status.vmAgent.extensionHandlers.append(handler_status)
-        
+
+
 class ExtHandlerInstance(object):
     def __init__(self, ext_handler, protocol):
         self.ext_handler = ext_handler
