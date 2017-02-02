@@ -56,8 +56,22 @@ class Agent(object):
         level = logger.LogLevel.VERBOSE if verbose else logger.LogLevel.INFO
         logger.add_logger_appender(logger.AppenderType.FILE, level,
                                  path="/var/log/waagent.log")
-        logger.add_logger_appender(logger.AppenderType.CONSOLE, level,
-                                 path="/dev/console")
+
+        #
+        # TODO: This is being removed/disabled as it redirects the
+        # agent's log messages to the console, which is not what we want
+        # when running on Delphix. If we need to maintain this
+        # functionality for non-Delphix systems (e.g. for upstreaming
+        # purposes), we'll need to revisit this and do something more
+        # elegant than completely removing it.
+        #
+        # Additionally, it's only commented out instead of actually
+        # deleted from the codebase to act as a reminder that we made
+        # this change. This is useful because it'll show up when
+        # grep-ing the codebase for any remaining TODO items.
+        #
+        # logger.add_logger_appender(logger.AppenderType.CONSOLE, level,
+        #                          path="/dev/console")
 
         #Init event reporter
         event_dir = os.path.join(conf.get_lib_dir(), "events")
