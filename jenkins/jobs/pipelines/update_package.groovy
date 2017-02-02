@@ -187,7 +187,7 @@ try {
                     return
 
                 stage('Trigger ISO Build') {
-                    build(job: 'dlpx-os-gate/projects/hyperv/post-push', quietPeriod: 0, propagate: false)
+                    build(job: 'dlpx-os-gate/projects/hyperv/post-push', quietPeriod: 0, propagate: false, wait: false)
                 }
             }
         }
