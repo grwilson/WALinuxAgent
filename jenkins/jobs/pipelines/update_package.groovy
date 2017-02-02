@@ -183,7 +183,7 @@ try {
                     }
                 }
 
-                if (env.UPDATE_ISO_MEDIA != 'yes)
+                if (env.UPDATE_ISO_MEDIA != 'yes')
                     return
 
                 stage('Trigger ISO Build') {
