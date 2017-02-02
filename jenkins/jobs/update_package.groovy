@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 by Delphix. All rights reserved.
+ * Copyright (c) 2016, 2017 by Delphix. All rights reserved.
  */
 
 pipelineJob('update-package') {
@@ -41,9 +41,11 @@ pipelineJob('update-package') {
         if (System.getenv('JENKINS_DEVELOPER') == null) {
             env('UPDATE_SDIST_MIRROR', 'yes')
             env('UPDATE_PKG_REPOSITORY', 'yes')
+            env('UPDATE_ISO_MEDIA', 'yes')
         } else {
             env('UPDATE_SDIST_MIRROR', 'no')
             env('UPDATE_PKG_REPOSITORY', 'no')
+            env('UPDATE_ISO_MEDIA', 'no')
         }
     }
 

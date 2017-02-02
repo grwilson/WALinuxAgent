@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 by Delphix. All rights reserved.
+ * Copyright (c) 2016, 2017 by Delphix. All rights reserved.
  */
 
 currentBuild.result = 'SUCCESS'
@@ -181,6 +181,13 @@ try {
                             sh("sudo -u delphix pkgrepo -s ${env.PKG_REPOSITORY_DIRECTORY} refresh")
                         }
                     }
+                }
+
+                if (env.UPDATE_ISO_MEDIA != 'yes)
+                    return
+
+                stage('Trigger ISO Build') {
+                    build(job: 'dlpx-os-gate/projects/hyperv/post-push', quietPeriod: 0, propagate: false)
                 }
             }
         }
