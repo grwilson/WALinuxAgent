@@ -52,9 +52,6 @@ class DelphixOSUtil(DefaultOSUtil):
     def del_root_password(self):
         logger.error('"del_root_password" not supported.')
 
-    def restart_if(self, ifname):
-        logger.error('"restart_if" not supported.')
-
     def start_agent_service(self):
         return shellutil.run("svcadm enable -t svc:/system/virtualization/waagent", chk_err=False)
 
@@ -112,6 +109,9 @@ class DelphixOSUtil(DefaultOSUtil):
 
         if actual != hostname:
             raise OSUtilError('Unable to modify hostname to the desired value')
+
+    def restart_if(self, ifname):
+        return shellutil.run("ipadm refresh-addr {0}".format(ifname))
 
     def publish_hostname(self, hostname):
         #
@@ -208,6 +208,13 @@ class DelphixOSUtil(DefaultOSUtil):
     def is_missing_default_route(self):
         return False
 
+    #
+    # When probing for the wireserver endpoint using DHCP, the DHCP
+    # services doesn't need to be disabled when running on Delphix.
+    # Additionally, this won't normally be called, since the DHCP cache
+    # will normally be used to determine the wireserver endpoint; and
+    # thus, we won't need to probe for the endpoint using DHCP requests.
+    #
     def is_dhcp_enabled(self):
         return False
 

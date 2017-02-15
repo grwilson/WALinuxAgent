@@ -19,13 +19,13 @@
 		restart_on='error'
 		type='service'>
 		<service_fmri value='svc:/milestone/network' />
-	      </dependency>
+	</dependency>
 
 	<dependency name='rmvolmgr'
 		grouping='require_any'
 		restart_on='error'
 		type='service'>
-	      <service_fmri value='svc:/system/filesystem/rmvolmgr' />
+		<service_fmri value='svc:/system/filesystem/rmvolmgr' />
 	</dependency>
 
 	<exec_method
