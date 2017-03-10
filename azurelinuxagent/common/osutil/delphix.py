@@ -202,8 +202,12 @@ class DelphixOSUtil(DefaultOSUtil):
         return self._get_net_info()[:2]
 
     def route_add(self, net, mask, gateway):
-        cmd = 'route add {0} {1} {2}'.format(net, gateway, mask)
-        return shellutil.run(cmd, chk_err=False)
+        #
+        # The "Router" DHCP option is provided by the Azure cloud's DHCP
+        # server, so instead of having the Agent modify the routes, we
+        # rely on the DHCP client on the DE to do this.
+        #
+        logger.warn('"route_add" not supported.')
 
     def is_missing_default_route(self):
         return False
