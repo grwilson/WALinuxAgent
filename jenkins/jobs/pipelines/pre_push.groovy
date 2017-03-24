@@ -7,7 +7,7 @@ error = null
 common = null
 
 node {
-    stage('Checkout') {
+    stage('Checkout')
         checkout([$class: 'GitSCM', changelog: false, poll: false,
                   userRemoteConfigs: [[name: 'origin', url: GIT_URL, credentialsId: 'git-ci-key']],
                   branches: [[name: GIT_BRANCH]],
@@ -20,7 +20,6 @@ node {
          * directory when stashing these files.
          */
         stash(name: 'walinuxagent', useDefaultExcludes: false)
-    }
 }
 
 if (common == null)
@@ -29,9 +28,8 @@ if (common == null)
 env.DCENTER_GUEST = common.getDCenterGuestName()
 
 try {
-    stage('Create VM') {
+    stage('Create VM')
         common.createDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST, env.DCENTER_IMAGE)
-    }
 
     /*
      * We can only use "withCredentials" if we're in a "node" context, so we allocate a node to satisfy that
@@ -46,12 +44,11 @@ try {
                  "${USERNAME}:${PASSWORD}:" +
                  "/opt/jdk/bin/java:/var/tmp/jenkins:sudo -u delphix sh -c ':'") {
 
-                stage('Dependencies') {
+                stage('Dependencies')
                     unstash(name: 'walinuxagent')
                     sh('sudo pip install discover unittest2')
-                }
 
-                stage('Tests') {
+                stage('Tests')
                     parallel('Unit Tests' : {
                         /*
                          * Some of the DelphixOSUtil tests must be run as root, or else they'll be skipped. As a
@@ -61,7 +58,6 @@ try {
                     }, 'SMF Validation': {
                         sh('svccfg validate init/delphix/waagent.xml')
                     })
-                }
             }
         }
     }

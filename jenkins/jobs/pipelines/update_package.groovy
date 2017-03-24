@@ -7,7 +7,7 @@ error = null
 common = null
 
 node {
-    stage('Checkout') {
+    stage('Checkout')
         checkout([$class: 'GitSCM', changelog: true, poll: false,
                   userRemoteConfigs: [[name: 'origin', url: GIT_URL, credentialsId: 'git-ci-key']],
                   branches: [[name: GIT_BRANCH]],
@@ -17,7 +17,6 @@ node {
 
         common = load("${GIT_DIRECTORY}/jenkins/jobs/pipelines/common.groovy")
         stash(name: 'walinuxagent', include: "${GIT_DIRECTORY}/**", useDefaultExcludes: false)
-    }
 }
 
 if (common == null)
@@ -26,9 +25,8 @@ if (common == null)
 env.DCENTER_GUEST = common.getDCenterGuestName()
 
 try {
-    stage('Create VM') {
+    stage('Create VM')
         common.createDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST, env.DCENTER_IMAGE)
-    }
 
     /*
      * We can only use "withCredentials" if we're in a "node" context, so we allocate a node to satisfy that
@@ -43,7 +41,7 @@ try {
                  "${USERNAME}:${PASSWORD}:" +
                  "/opt/jdk/bin/java:/var/tmp/jenkins:sudo -u delphix sh -c ':'") {
 
-                stage('Dependencies') {
+                stage('Dependencies')
                     checkout([$class: 'GitSCM', changelog: true, poll: false,
                               userRemoteConfigs: [[name: 'origin', url: PKG_BUILD_URL, credentialsId: 'git-ci-key',
                                   refspec: '+refs/tags/*:refs/remotes/origin/tags/*']],
@@ -53,9 +51,8 @@ try {
                                   [$class: 'WipeWorkspace']]])
 
                     unstash(name: 'walinuxagent')
-                }
 
-                stage('Check TAG') {
+                stage('Check TAG')
                     dir("${GIT_DIRECTORY}") {
                         describe = sh(script: 'git describe --tags', returnStdout: true).trim().tokenize('-')
                         tag      = describe[0]
@@ -71,9 +68,8 @@ try {
                             error("The git tag is not in the expected format: '${tag}'")
                         tag = tag.substring(1, tag.length())
                     }
-                }
 
-                stage('Update SDIST') {
+                stage('Update SDIST')
                     dir("${GIT_DIRECTORY}") {
                         /*
                          * Since we're building new packages for every commit, if the version of each SDIST that
@@ -115,7 +111,6 @@ try {
                                "${env.SDIST_DIRECTORY}/${env.SDIST_FILENAME}")
                         }
                     }
-                }
 
                 /*
                  * The SDIST is a requirement in order to build the IPS package. Thus, if we don't update the
@@ -126,7 +121,7 @@ try {
                 if (env.UPDATE_SDIST_MIRROR != 'yes')
                     return
 
-                stage('Update PKG') {
+                stage('Update PKG')
                     dir("${PKG_BUILD_DIRECTORY}/lib") {
                         /*
                          * We need to point the package build system to the directory that was used when
@@ -181,14 +176,12 @@ try {
                             sh("sudo -u delphix pkgrepo -s ${env.PKG_REPOSITORY_DIRECTORY} refresh")
                         }
                     }
-                }
 
                 if (env.UPDATE_ISO_MEDIA != 'yes')
                     return
 
-                stage('Trigger ISO Build') {
+                stage('Trigger ISO Build')
                     build(job: 'dlpx-os-gate/projects/hyperv/post-push', quietPeriod: 0, propagate: false, wait: false)
-                }
             }
         }
     }
