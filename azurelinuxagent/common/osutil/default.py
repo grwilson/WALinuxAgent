@@ -280,6 +280,9 @@ class DefaultOSUtil(object):
                 return "/dev/{0}".format(dvd.group(0))
         raise OSUtilError("Failed to get dvd device")
 
+    def get_dvd_mount_options(self):
+        return "-o ro -t udf,iso9660"
+
     def mount_dvd(self, max_retry=6, chk_err=True, dvd_device=None, mount_point=None):
         if dvd_device is None:
             dvd_device = self.get_dvd_device()
@@ -293,8 +296,9 @@ class DefaultOSUtil(object):
         if not os.path.isdir(mount_point):
             os.makedirs(mount_point)
 
+        mount_options = self.get_dvd_mount_options()
         for retry in range(0, max_retry):
-            retcode = self.mount(dvd_device, mount_point, option="-o ro -t udf,iso9660",
+            retcode = self.mount(dvd_device, mount_point, option=mount_options,
                                  chk_err=chk_err)
             if retcode == 0:
                 logger.info("Successfully mounted dvd")

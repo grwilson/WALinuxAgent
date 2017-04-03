@@ -175,19 +175,18 @@ class DelphixOSUtil(DefaultOSUtil):
     def is_selinux_system(self):
         return False
 
-    #
-    # We rely on the OS mounting and unmounting the dvd for us; thus,
-    # all of these methods are not supported.
-    #
+    def get_dvd_mount_options(self):
+        return "-o ro -F udfs"
 
     def get_dvd_device(self, dev_dir='/dev'):
-        logger.warn('"get_dvd_device" not supported.')
-
-    def mount_dvd(self, max_retry=6, chk_err=True, dvd_device=None, mount_point=None):
-        logger.warn('"mount_dvd" not supported.')
-
-    def umount_dvd(self, chk_err=True, mount_point=None):
-        logger.warn('"unmount_dvd" not supported.')
+        cmd = "rmformat -l | grep 'Logical Node' | awk '{print $NF}' | sed -e 's/rdsk/dsk/'"
+        ret = shellutil.run_get_output(cmd)
+        if ret[0] == 0:
+            device = ret[1].strip()
+            logger.info('Using dvd device: "{0}"'.format(device))
+            return device
+        else:
+            raise OSUtilError('Failed to determine DVD device.')
 
     def eject_dvd(self, chk_err=True):
         logger.warn('"eject_dvd" not supported.')
