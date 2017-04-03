@@ -14,8 +14,14 @@ pipelineJob('pre-push') {
     }
 
     environmentVariables {
+        env('DEVOPS_REPO', 'https://gitlab.delphix.com/devops/devops-gate.git')
+        env('DEVOPS_BRANCH', 'master')
+
         env('DCENTER_IMAGE', 'dlpx-trunk')
         env('DCENTER_HOST', 'dcenter')
+
+        env('DCENTER_ROLES', 'dlpx.dxos-credentials')
+        env('SLAVE_ROLES', 'dlpx.initialize-dxos')
     }
 
     definition {

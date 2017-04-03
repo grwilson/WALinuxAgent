@@ -32,8 +32,14 @@ pipelineJob('update-package') {
     }
 
     environmentVariables {
+        env('DEVOPS_REPO', 'https://gitlab.delphix.com/devops/devops-gate.git')
+        env('DEVOPS_BRANCH', 'master')
+
         env('DCENTER_IMAGE', 'dlpx-trunk')
         env('DCENTER_HOST', 'dcenter')
+
+        env('DCENTER_ROLES', 'dlpx.dxos-credentials')
+        env('SLAVE_ROLES', 'dlpx.initialize-dxos')
 
         env('SDIST_MIRROR_DIRECTORY', '/net/pharos/export/third-party/mirror')
         env('PKG_REPOSITORY_DIRECTORY', '/net/pharos/export/src/dlpx-pkg-gate')

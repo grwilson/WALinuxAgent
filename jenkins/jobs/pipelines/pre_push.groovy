@@ -4,78 +4,63 @@
 
 currentBuild.result = 'SUCCESS'
 error = null
-common = null
-
-node {
-    stage('Checkout')
-        checkout([$class: 'GitSCM', changelog: false, poll: false,
-                  userRemoteConfigs: [[name: 'origin', url: GIT_URL, credentialsId: 'git-ci-key']],
-                  branches: [[name: GIT_BRANCH]],
-                  extensions: [[$class: 'WipeWorkspace']]])
-
-        common = load('jenkins/jobs/pipelines/common.groovy')
-
-        /*
-         * Some of the unit tests require the .git directory to be present, so we need to ensure we include this
-         * directory when stashing these files.
-         */
-        stash(name: 'walinuxagent', useDefaultExcludes: false)
-}
-
-if (common == null)
-    error('common pipeline library incorrectly loaded.')
-
-env.DCENTER_GUEST = common.getDCenterGuestName()
 
 try {
     stage('Create VM')
-        common.createDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST, env.DCENTER_IMAGE)
+        def create = build(job: 'devops-gate/master/create-dc-slave', parameters: [
+            [$class: 'StringParameterValue', name: 'DEVOPS_REPO', value: env.DEVOPS_REPO],
+            [$class: 'StringParameterValue', name: 'DEVOPS_BRANCH', value: env.DEVOPS_BRANCH],
+            [$class: 'StringParameterValue', name: 'DCENTER_HOST', value: env.DCENTER_HOST],
+            [$class: 'StringParameterValue', name: 'DCENTER_ROLES', value: env.DCENTER_ROLES],
+            [$class: 'StringParameterValue', name: 'DCENTER_IMAGE', value: env.DCENTER_IMAGE],
+            [$class: 'StringParameterValue', name: 'SLAVE_ROLES', value: env.SLAVE_ROLES],
+            [$class: 'StringParameterValue', name: 'JENKINS_MASTER', value: env.JENKINS_URL]
+        ])
 
-    /*
-     * We can only use "withCredentials" if we're in a "node" context, so we allocate a node to satisfy that
-     * constraint, but don't have to worry about which node we're using.
-     */
-    node {
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'blackbox',
-                          usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+        env.DCENTER_GUEST = create.rawBuild.environment.GUEST_NAME
 
-            node("ssh-direct:" +
-                 "${env.DCENTER_GUEST}.${env.DCENTER_HOST}:" +
-                 "${USERNAME}:${PASSWORD}:" +
-                 "/opt/jdk/bin/java:/var/tmp/jenkins:sudo -u delphix sh -c ':'") {
+    node(env.DCENTER_GUEST) {
+        stage('Checkout')
+            checkout([$class: 'GitSCM', changelog: false, poll: false,
+                      userRemoteConfigs: [[name: 'origin', url: GIT_URL, credentialsId: 'git-ci-key']],
+                      branches: [[name: GIT_BRANCH]],
+                      extensions: [[$class: 'WipeWorkspace']]])
 
-                stage('Dependencies')
-                    unstash(name: 'walinuxagent')
-                    sh('sudo pip install discover unittest2')
+        stage('Dependencies')
+            sh('sudo pip install discover unittest2')
 
-                stage('Tests')
-                    parallel('Unit Tests' : {
-                        /*
-                         * Some of the DelphixOSUtil tests must be run as root, or else they'll be skipped. As a
-                         * result, we have to run the tests using "sudo" to avoid skipping these tests.
-                         */
-                        sh('sudo python -m discover -s tests -v')
-                    }, 'SMF Validation': {
-                        sh('svccfg validate init/delphix/waagent.xml')
-                    })
-            }
-        }
+        stage('Tests')
+            parallel('Unit Tests' : {
+                /*
+                 * Some of the DelphixOSUtil tests must be run as root, or else they'll be skipped. As a
+                 * result, we have to run the tests using "sudo" to avoid skipping these tests.
+                 */
+                sh('sudo python -m discover -s tests -v')
+            }, 'SMF Validation': {
+                sh('svccfg validate init/delphix/waagent.xml')
+            })
     }
 } catch (e) {
     currentBuild.result = 'FAILURE'
     error = e
 } finally {
-    common.sendResults(EMAIL)
-
     /*
-     * On failure, it might be useful to have the VM around for debugging purposes (e.g. inspecting the state of
-     * the system after the unit tests run, since some of them modify the system's state), which is why we only
-     * unregister the VM when this job fails.
+     * We can only use "emailext" if we're in a "node" context, so we allocate a node to satisfy that
+     * constraint, but we don't have to worry about which node we're using.
      */
-    if (currentBuild.result == 'FAILURE')
-        common.unregisterDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST)
-    else
-        common.destroyDCenterGuest(env.DCENTER_GUEST, env.DCENTER_HOST)
+    node {
+        emailext(to: EMAIL, body: "Please visit ${env.BUILD_URL} to inspect results.",
+                 subject: "Job ${env.JOB_NAME} #${env.BUILD_NUMBER} completed with status: ${currentBuild.result}")
+    }
+
+    if (env.DCENTER_GUEST) {
+        build(job: 'devops-gate/master/destroy-dc-guest', parameters: [
+            [$class: 'StringParameterValue', name: 'DEVOPS_REPO', value: env.DEVOPS_REPO],
+            [$class: 'StringParameterValue', name: 'DEVOPS_BRANCH', value: env.DEVOPS_BRANCH],
+            [$class: 'StringParameterValue', name: 'DCENTER_HOST', value: env.DCENTER_HOST],
+            [$class: 'StringParameterValue', name: 'GUEST_NAME', value: env.DCENTER_GUEST]
+        ])
+    }
 
     if (error)
         throw error
