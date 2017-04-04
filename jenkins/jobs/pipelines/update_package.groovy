@@ -80,7 +80,7 @@ try {
                 sh("test -f dist/${env.SDIST_FILENAME}")
 
                 if (env.UPDATE_SDIST_MIRROR == 'yes') {
-                    sh("mkdir -p ${env.SDIST_DIRECTORY}")
+                    sh("sudo -u delphix mkdir -p ${env.SDIST_DIRECTORY}")
 
                     /*
                      * We copy to a temporary file and then move the temporary file to the final location
@@ -90,8 +90,8 @@ try {
                      * file is successfully copied, we can atomically move this to it's final location
                      * since this will dissolve to a "rename" syscall (which is atomic).
                      */
-                    sh("cp dist/${env.SDIST_FILENAME} ${env.SDIST_DIRECTORY}/${env.SDIST_FILENAME}.tmp")
-                    sh("mv ${env.SDIST_DIRECTORY}/${env.SDIST_FILENAME}.tmp " +
+                    sh("sudo -u delphix cp dist/${env.SDIST_FILENAME} ${env.SDIST_DIRECTORY}/${env.SDIST_FILENAME}.tmp")
+                    sh("sudo -u delphix mv ${env.SDIST_DIRECTORY}/${env.SDIST_FILENAME}.tmp " +
                        "${env.SDIST_DIRECTORY}/${env.SDIST_FILENAME}")
                 }
             }
