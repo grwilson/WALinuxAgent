@@ -156,8 +156,10 @@ try {
                 sh('./buildctl -r $(pwd)/packages -b build walinuxagent')
 
                 if (env.UPDATE_PKG_REPOSITORY == 'yes') {
-                    sh("sudo -u delphix pkgrecv -s packages -d ${env.PKG_REPOSITORY_DIRECTORY} walinuxagent")
-                    sh("sudo -u delphix pkgrepo -s ${env.PKG_REPOSITORY_DIRECTORY} refresh")
+                    for (directory in env.PKG_REPOSITORY_DIRECTORIES.tokenize(' ')) {
+                        sh("sudo -u delphix pkgrecv -s packages -d ${directory} walinuxagent")
+                        sh("sudo -u delphix pkgrepo -s ${directory} refresh")
+                    }
                 }
             }
     }
