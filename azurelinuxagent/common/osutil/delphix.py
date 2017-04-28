@@ -52,11 +52,14 @@ class DelphixOSUtil(DefaultOSUtil):
     def del_root_password(self):
         logger.error('"del_root_password" not supported.')
 
+    def stop_mgmt_service(self):
+        return shellutil.run("svcadm disable -st svc:/system/delphix/mgmt", chk_err=False)
+
     def start_agent_service(self):
-        return shellutil.run("svcadm enable -t svc:/system/virtualization/waagent", chk_err=False)
+        return shellutil.run("svcadm enable -st svc:/system/virtualization/waagent", chk_err=False)
 
     def stop_agent_service(self):
-        return shellutil.run("svcadm disable -t svc:/system/virtualization/waagent", chk_err=False)
+        return shellutil.run("svcadm disable -st svc:/system/virtualization/waagent", chk_err=False)
 
     def register_agent_service(self):
         return shellutil.run("svcadm enable svc:/system/virtualization/waagent", chk_err=False)

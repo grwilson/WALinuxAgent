@@ -1,4 +1,5 @@
-# Copyright (c) 2016 by Delphix. All rights reserved.
+#
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +23,9 @@ from azurelinuxagent.pa.provision.default import ProvisionHandler
 from azurelinuxagent.common.exception import ProvisionError, ProtocolError
 import azurelinuxagent.common.utils.fileutil as fileutil
 
-class DelphixProvisionHandler(ProvisionHandler):
+class DelphixOSProvisionHandler(ProvisionHandler):
     def __init__(self):
-        super(DelphixProvisionHandler, self).__init__()
+        super(DelphixOSProvisionHandler, self).__init__()
 
     def config_user_account(self, ovfenv):
         logger.info('"config_user_account" not supported.')

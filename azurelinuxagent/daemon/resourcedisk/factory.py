@@ -1,5 +1,5 @@
 # Copyright 2014 Microsoft Corporation
-# Copyright (c) 2016 by Delphix. All rights reserved.
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from azurelinuxagent.common.version import DISTRO_NAME, \
                                            DISTRO_FULL_NAME
 from .default import ResourceDiskHandler
 from .freebsd import FreeBSDResourceDiskHandler
-from .delphix import DelphixResourceDiskHandler
+from .delphix import DelphixOSResourceDiskHandler
 
 def get_resourcedisk_handler(distro_name=DISTRO_NAME, 
                              distro_version=DISTRO_VERSION,
@@ -31,7 +31,7 @@ def get_resourcedisk_handler(distro_name=DISTRO_NAME,
     if distro_name == "freebsd":
         return FreeBSDResourceDiskHandler()
     elif distro_name == "delphix":
-        return DelphixResourceDiskHandler()
+        return DelphixOSResourceDiskHandler()
 
     return ResourceDiskHandler()
 

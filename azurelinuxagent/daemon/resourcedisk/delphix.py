@@ -1,7 +1,7 @@
 # Microsoft Azure Linux Agent
 #
 # Copyright 2014 Microsoft Corporation
-# Copyright (c) 2016 by Delphix. All rights reserved.
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@
 import azurelinuxagent.common.logger as logger
 from azurelinuxagent.daemon.resourcedisk.default import ResourceDiskHandler
 
-class DelphixResourceDiskHandler(ResourceDiskHandler):
+class DelphixOSResourceDiskHandler(ResourceDiskHandler):
     """
     This class handles resource disk activation for Delphix.
     """
     def __init__(self):
-        super(DelphixResourceDiskHandler, self).__init__()
+        super(DelphixOSResourceDiskHandler, self).__init__()
 
     def activate_resource_disk(self):
         logger.error("Activation of resource disk not supported.")

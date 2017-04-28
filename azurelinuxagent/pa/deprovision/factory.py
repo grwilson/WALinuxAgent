@@ -25,6 +25,7 @@ from .default import DeprovisionHandler
 from .clearlinux import ClearLinuxDeprovisionHandler
 from .coreos import CoreOSDeprovisionHandler
 from .ubuntu import UbuntuDeprovisionHandler
+from .delphix import DelphixOSDeprovisionHandler
 
 def get_deprovision_handler(distro_name=DISTRO_NAME, 
                             distro_version=DISTRO_VERSION,
@@ -35,6 +36,8 @@ def get_deprovision_handler(distro_name=DISTRO_NAME,
         return CoreOSDeprovisionHandler()
     if distro_name == "clear linux":
         return ClearLinuxDeprovisionHandler()
+    if distro_name == "delphix":
+        return DelphixOSDeprovisionHandler()
 
     return DeprovisionHandler()
 
