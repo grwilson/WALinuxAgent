@@ -50,6 +50,8 @@ class ProvisionHandler(object):
             return
 
         thumbprint = None
+        reboot = False
+
         # If provision is not enabled, report ready and then return
         if not conf.get_provision_enabled():
             logger.info("Provisioning is disabled, skipping.")
@@ -62,7 +64,7 @@ class ProvisionHandler(object):
                 self.report_not_ready("Provisioning", "Starting")
                 logger.info("Starting provisioning")
                 self.provision(ovf_env)
-                self.osutil.enable_serial_console()
+                reboot = self.osutil.enable_serial_console()
                 thumbprint = self.reg_ssh_host_key()
                 self.osutil.restart_ssh_service()
                 self.report_event("Provision succeed", is_success=True)
@@ -80,6 +82,9 @@ class ProvisionHandler(object):
         fileutil.write_file(provisioned, "")
         self.report_ready(thumbprint)
         logger.info("Provisioning complete")
+
+        if reboot:
+            self.osutil.reboot_system()
 
     def get_protocol_by_file(self):
         self.protocol_util.get_protocol_by_file()

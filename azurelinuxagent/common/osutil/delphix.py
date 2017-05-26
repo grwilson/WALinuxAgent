@@ -151,6 +151,26 @@ class DelphixOSUtil(DefaultOSUtil):
         else:
             raise OSUtilError('Failed to enable serial console.')
 
+        #
+        # It would be better to only return True from this function, if
+        # we changed the console configuration; i.e. if the serial
+        # console was already configured prior to calling this function,
+        # no change will have been made, and thus, a reboot would not be
+        # rquired.
+        #
+        # With that said, this function is only called during the
+        # provisioning process, which is generally only executed a single
+        # time for each VM (unless the VM is deprovisioned), so this less
+        # than ideal solution will suffice.
+        #
+        return True
+
+    def reboot_system(self):
+        logger.info('Rebooting system')
+        ret = shellutil.run('reboot')
+        if ret != 0:
+            logger.error('Failed to reboot the system')
+
     def get_dhcp_lease_endpoint(self):
         ret = shellutil.run_get_output('/sbin/dhcpinfo 245')
 

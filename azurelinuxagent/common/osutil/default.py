@@ -639,7 +639,13 @@ class DefaultOSUtil(object):
         pass
 
     def enable_serial_console(self):
-        pass
+        return False
+
+    def reboot_system(self):
+        logger.info('Rebooting system')
+        ret = shellutil.run('shutdown -r now')
+        if ret != 0:
+            logger.error('Failed to reboot the system')
 
     def route_add(self, net, mask, gateway):
         """
