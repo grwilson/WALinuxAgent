@@ -19,14 +19,12 @@
 
 import os
 import time
-import azurelinuxagent.common.logger as logger
-from azurelinuxagent.common.future import ustr
+
 import azurelinuxagent.common.conf as conf
-import azurelinuxagent.common.protocol.ovfenv as ovfenv
-from azurelinuxagent.common.event import add_event, WALAEventOperation
-from azurelinuxagent.common.exception import ProvisionError, ProtocolError
-import azurelinuxagent.common.utils.shellutil as shellutil
+import azurelinuxagent.common.logger as logger
 import azurelinuxagent.common.utils.fileutil as fileutil
+from azurelinuxagent.common.exception import ProvisionError, ProtocolError
+from azurelinuxagent.common.future import ustr
 from azurelinuxagent.pa.provision.default import ProvisionHandler
 
 """
@@ -53,9 +51,8 @@ class UbuntuProvisionHandler(ProvisionHandler):
         self.wait_for_ovfenv()
         self.protocol_util.get_protocol()
         self.report_not_ready("Provisioning", "Starting")
-        logger.info("Sleep 15 seconds to prevent throttling")
-        time.sleep(15)  # Sleep to prevent throttling
-
+        logger.info("Sleeping 1 second to avoid throttling.")
+        time.sleep(1)
         try:
             logger.info("Wait for ssh host key to be generated.")
             thumbprint = self.wait_for_ssh_host_key()

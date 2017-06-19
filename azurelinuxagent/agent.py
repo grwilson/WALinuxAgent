@@ -1,6 +1,7 @@
 # Microsoft Azure Linux Agent
 #
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +26,8 @@ import os
 import sys
 import re
 import subprocess
+import traceback
+
 import azurelinuxagent.common.logger as logger
 import azurelinuxagent.common.event as event
 import azurelinuxagent.common.conf as conf
@@ -53,8 +56,22 @@ class Agent(object):
         level = logger.LogLevel.VERBOSE if verbose else logger.LogLevel.INFO
         logger.add_logger_appender(logger.AppenderType.FILE, level,
                                  path="/var/log/waagent.log")
-        logger.add_logger_appender(logger.AppenderType.CONSOLE, level,
-                                 path="/dev/console")
+
+        #
+        # TODO: This is being removed/disabled as it redirects the
+        # agent's log messages to the console, which is not what we want
+        # when running on Delphix. If we need to maintain this
+        # functionality for non-Delphix systems (e.g. for upstreaming
+        # purposes), we'll need to revisit this and do something more
+        # elegant than completely removing it.
+        #
+        # Additionally, it's only commented out instead of actually
+        # deleted from the codebase to act as a reminder that we made
+        # this change. This is useful because it'll show up when
+        # grep-ing the codebase for any remaining TODO items.
+        #
+        # logger.add_logger_appender(logger.AppenderType.CONSOLE, level,
+        #                          path="/dev/console")
 
         #Init event reporter
         event_dir = os.path.join(conf.get_lib_dir(), "events")
@@ -133,8 +150,10 @@ def main(args=[]):
                 agent.daemon()
             elif command == "run-exthandlers":
                 agent.run_exthandlers()
-        except Exception as e:
-            logger.error(u"Failed to run '{0}': {1}", command, e)
+        except Exception:
+            logger.error(u"Failed to run '{0}': {1}",
+                         command,
+                         traceback.format_exc())
 
 def parse_args(sys_args):
     """
@@ -148,6 +167,8 @@ def parse_args(sys_args):
             cmd = "deprovision+user"
         elif re.match("^([-/]*)deprovision", a):
             cmd = "deprovision"
+        elif re.match("^([-/]*)provision", a):
+            cmd = "provision"
         elif re.match("^([-/]*)daemon", a):
             cmd = "daemon"
         elif re.match("^([-/]*)start", a):

@@ -1,4 +1,6 @@
+#
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016, 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,6 +50,8 @@ class ProvisionHandler(object):
             return
 
         thumbprint = None
+        reboot = False
+
         # If provision is not enabled, report ready and then return
         if not conf.get_provision_enabled():
             logger.info("Provisioning is disabled, skipping.")
@@ -56,10 +60,11 @@ class ProvisionHandler(object):
             try:
                 logger.info("Copying ovf-env.xml")
                 ovf_env = self.protocol_util.copy_ovf_env()
-                self.protocol_util.get_protocol_by_file()
+                self.get_protocol_by_file()
                 self.report_not_ready("Provisioning", "Starting")
                 logger.info("Starting provisioning")
                 self.provision(ovf_env)
+                reboot = self.osutil.enable_serial_console()
                 thumbprint = self.reg_ssh_host_key()
                 self.osutil.restart_ssh_service()
                 self.report_event("Provision succeed", is_success=True)
@@ -77,6 +82,12 @@ class ProvisionHandler(object):
         fileutil.write_file(provisioned, "")
         self.report_ready(thumbprint)
         logger.info("Provisioning complete")
+
+        if reboot:
+            self.osutil.reboot_system()
+
+    def get_protocol_by_file(self):
+        self.protocol_util.get_protocol_by_file()
 
     def reg_ssh_host_key(self):
         keypair_type = conf.get_ssh_host_keypair_type()
@@ -100,10 +111,10 @@ class ProvisionHandler(object):
     def provision(self, ovfenv):
         logger.info("Handle ovf-env.xml.")
         try:
-            logger.info("Set host name.")
+            logger.info("Set hostname [{0}]".format(ovfenv.hostname))
             self.osutil.set_hostname(ovfenv.hostname)
 
-            logger.info("Publish host name.")
+            logger.info("Publish hostname [{0}]".format(ovfenv.hostname))
             self.osutil.publish_hostname(ovfenv.hostname)
 
             self.config_user_account(ovfenv)

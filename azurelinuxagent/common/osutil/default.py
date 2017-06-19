@@ -1,5 +1,6 @@
 #
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -279,6 +280,9 @@ class DefaultOSUtil(object):
                 return "/dev/{0}".format(dvd.group(0))
         raise OSUtilError("Failed to get dvd device")
 
+    def get_dvd_mount_options(self):
+        return "-o ro -t udf,iso9660"
+
     def mount_dvd(self, max_retry=6, chk_err=True, dvd_device=None, mount_point=None):
         if dvd_device is None:
             dvd_device = self.get_dvd_device()
@@ -292,8 +296,9 @@ class DefaultOSUtil(object):
         if not os.path.isdir(mount_point):
             os.makedirs(mount_point)
 
+        mount_options = self.get_dvd_mount_options()
         for retry in range(0, max_retry):
-            retcode = self.mount(dvd_device, mount_point, option="-o ro -t udf,iso9660",
+            retcode = self.mount(dvd_device, mount_point, option=mount_options,
                                  chk_err=chk_err)
             if retcode == 0:
                 logger.info("Successfully mounted dvd")
@@ -494,6 +499,8 @@ class DefaultOSUtil(object):
 
         if primary is None:
             primary = ''
+            logger.error('could not determine primary interface, '
+                         'please ensure /proc/net/route is correct')
 
         logger.info('primary interface is [{0}]'.format(primary))
         return primary
@@ -631,6 +638,15 @@ class DefaultOSUtil(object):
     def restart_ssh_service(self):
         pass
 
+    def enable_serial_console(self):
+        return False
+
+    def reboot_system(self):
+        logger.info('Rebooting system')
+        ret = shellutil.run('shutdown -r now')
+        if ret != 0:
+            logger.error('Failed to reboot the system')
+
     def route_add(self, net, mask, gateway):
         """
         Add specified route using /sbin/route add -net.
@@ -675,6 +691,7 @@ class DefaultOSUtil(object):
 
     def publish_hostname(self, hostname):
         self.set_dhcp_hostname(hostname)
+        self.set_hostname_record(hostname)
         ifname = self.get_if_name()
         self.restart_if(ifname)
 
@@ -725,21 +742,31 @@ class DefaultOSUtil(object):
             port_id = port_id - 2
         device = None
         path = "/sys/bus/vmbus/devices/"
-        for vmbus in os.listdir(path):
-            deviceid = fileutil.read_file(os.path.join(path, vmbus, "device_id"))
-            guid = deviceid.lstrip('{').split('-')
-            if guid[0] == g0 and guid[1] == "000" + ustr(port_id):
-                for root, dirs, files in os.walk(path + vmbus):
-                    if root.endswith("/block"):
-                        device = dirs[0]
-                        break
-                    else : #older distros
-                        for d in dirs:
-                            if ':' in d and "block" == d.split(':')[0]:
-                                device = d.split(':')[1]
-                                break
-                break
+        if os.path.exists(path):
+            for vmbus in os.listdir(path):
+                deviceid = fileutil.read_file(os.path.join(path, vmbus, "device_id"))
+                guid = deviceid.lstrip('{').split('-')
+                if guid[0] == g0 and guid[1] == "000" + ustr(port_id):
+                    for root, dirs, files in os.walk(path + vmbus):
+                        if root.endswith("/block"):
+                            device = dirs[0]
+                            break
+                        else : #older distros
+                            for d in dirs:
+                                if ':' in d and "block" == d.split(':')[0]:
+                                    device = d.split(':')[1]
+                                    break
+                    break
         return device
+
+    def set_hostname_record(self, hostname):
+        fileutil.write_file(conf.get_published_hostname(), contents=hostname)
+
+    def get_hostname_record(self):
+        record = None
+        if os.path.exists(conf.get_published_hostname()):
+            record = fileutil.read_file(conf.get_published_hostname())
+        return record
 
     def del_account(self, username):
         if self.is_sys_user(username):
@@ -749,7 +776,7 @@ class DefaultOSUtil(object):
         self.conf_sudoer(username, remove=True)
 
     def decode_customdata(self, data):
-        return base64.b64decode(data)
+        return base64.b64decode(data).decode('utf-8')
 
     def get_total_mem(self):
         # Get total memory in bytes and divide by 1024**2 to get the valu in MB.

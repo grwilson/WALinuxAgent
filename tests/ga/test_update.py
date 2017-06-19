@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +40,7 @@ from azurelinuxagent.common.exception import UpdateError
 from azurelinuxagent.common.protocol.restapi import *
 from azurelinuxagent.common.protocol.wire import *
 from azurelinuxagent.common.utils.flexible_version import FlexibleVersion
-from azurelinuxagent.common.version import AGENT_NAME, AGENT_VERSION
+from azurelinuxagent.common.version import AGENT_NAME, AGENT_VERSION, DISTRO_NAME
 from azurelinuxagent.ga.update import *
 
 NO_ERROR = {
@@ -534,6 +535,34 @@ class TestGuestAgent(UpdateTestCase):
         self.assertFalse(os.path.isfile(agent.get_agent_pkg_path()))
         self.assertFalse(agent.is_downloaded)
         return
+
+    @patch("azurelinuxagent.ga.update.GuestAgent._ensure_downloaded")
+    @patch("azurelinuxagent.ga.update.restutil.http_get")
+    def test_download_fallback(self, mock_http_get, mock_ensure):
+        self.remove_agents()
+        self.assertFalse(os.path.isdir(self.agent_path))
+
+        mock_http_get.return_value = ResponseMock(
+            status=restutil.httpclient.SERVICE_UNAVAILABLE)
+
+        ext_uri = 'ext_uri'
+        host_uri = 'host_uri'
+        mock_host = HostPluginProtocol(host_uri,
+                                       'container_id',
+                                       'role_config')
+
+        pkg = ExtHandlerPackage(version=str(get_agent_version()))
+        pkg.uris.append(ExtHandlerPackageUri(uri=ext_uri))
+        agent = GuestAgent(pkg=pkg)
+        agent.host = mock_host
+
+        with patch.object(HostPluginProtocol,
+                          "get_artifact_request",
+                          return_value=[host_uri, {}]):
+            self.assertRaises(UpdateError, agent._download)
+            self.assertEqual(mock_http_get.call_count, 2)
+            self.assertEqual(mock_http_get.call_args_list[0][0][0], ext_uri)
+            self.assertEqual(mock_http_get.call_args_list[1][0][0], host_uri)
 
     @patch("azurelinuxagent.ga.update.restutil.http_get")
     def test_ensure_downloaded(self, mock_http_get):
@@ -1059,6 +1088,7 @@ class TestUpdate(UpdateTestCase):
         self.assertEqual(2, mock_time.time_call_count)
         return
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_run_latest_defaults_to_current(self):
         self.assertEqual(None, self.update_handler.get_latest_agent())
 
@@ -1299,8 +1329,9 @@ class ChildMock(Mock):
 
 
 class ProtocolMock(object):
-    def __init__(self, family="TestAgent", etag=42, versions=None):
+    def __init__(self, family="TestAgent", etag=42, versions=None, client=None):
         self.family = family
+        self.client = client
         self.etag = etag
         self.versions = versions if versions is not None else []
         self.create_manifests()

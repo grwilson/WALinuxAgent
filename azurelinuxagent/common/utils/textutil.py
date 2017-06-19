@@ -221,15 +221,24 @@ def hexstr_to_bytearray(a):
 
 
 def set_ssh_config(config, name, val):
-    notfound = True
+    found = False
+    no_match = -1
+
+    match_start = no_match
     for i in range(0, len(config)):
-        if config[i].startswith(name):
+        if config[i].startswith(name) and match_start == no_match:
             config[i] = "{0} {1}".format(name, val)
-            notfound = False
-        elif config[i].startswith("Match"):
-            # Match block must be put in the end of sshd config
-            break
-    if notfound:
+            found = True
+        elif config[i].lower().startswith("match"):
+            if config[i].lower().startswith("match all"):
+                # outside match block
+                match_start = no_match
+            elif match_start == no_match:
+                # inside match block
+                match_start = i
+    if not found:
+        if match_start != no_match:
+            i = match_start
         config.insert(i, "{0} {1}".format(name, val))
     return config
 
@@ -251,8 +260,14 @@ def set_ini_config(config, name, val):
 
 
 def remove_bom(c):
-    if str_to_ord(c[0]) > 128 and str_to_ord(c[1]) > 128 and \
-                    str_to_ord(c[2]) > 128:
+    '''
+    bom is comprised of a sequence of three chars,0xef, 0xbb, 0xbf, in case of utf-8.
+    '''
+    if not is_str_none_or_whitespace(c) and \
+       len(c) > 2 and \
+       str_to_ord(c[0]) > 128 and \
+       str_to_ord(c[1]) > 128 and \
+       str_to_ord(c[2]) > 128:
         c = c[3:]
     return c
 
@@ -261,6 +276,9 @@ def gen_password_hash(password, crypt_id, salt_len):
     collection = string.ascii_letters + string.digits
     salt = ''.join(random.choice(collection) for _ in range(salt_len))
     salt = "${0}${1}".format(crypt_id, salt)
+    if sys.version_info[0] == 2:
+        # if python 2.*, encode to type 'str' to prevent Unicode Encode Error from crypt.crypt
+        password = password.encode('utf-8')
     return crypt.crypt(password, salt)
 
 
@@ -278,11 +296,13 @@ def b64encode(s):
         return base64.b64encode(bytes(s, 'utf-8')).decode('utf-8')
     return base64.b64encode(s)
 
+
 def b64decode(s):
     from azurelinuxagent.common.version import PY_VERSION_MAJOR
     if PY_VERSION_MAJOR > 2:
         return base64.b64decode(s).decode('utf-8')
     return base64.b64decode(s)
+
 
 def safe_shlex_split(s):
     import shlex
@@ -290,3 +310,19 @@ def safe_shlex_split(s):
     if PY_VERSION[:2] == (2, 6):
         return shlex.split(s.encode('utf-8'))
     return shlex.split(s)
+
+
+def parse_json(json_str):
+    """
+    Parse json string and return a resulting dictionary
+    """
+    # trim null and whitespaces
+    result = None
+    if not is_str_none_or_whitespace(json_str):
+        import json
+        result = json.loads(json_str.rstrip(' \t\r\n\0'))
+
+    return result
+
+def is_str_none_or_whitespace(s):
+    return s is None or len(s) == 0 or s.isspace()

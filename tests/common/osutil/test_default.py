@@ -1,4 +1,5 @@
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2016 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +22,8 @@ import mock
 import azurelinuxagent.common.osutil.default as osutil
 import azurelinuxagent.common.utils.shellutil as shellutil
 from azurelinuxagent.common.osutil import get_osutil
+from azurelinuxagent.common.utils import fileutil
+from azurelinuxagent.common.version import DISTRO_NAME
 from tests.tools import *
 
 
@@ -39,6 +42,7 @@ class TestOSUtil(AgentTestCase):
             self.assertEqual(run_patch.call_count, retries)
             self.assertEqual(run_patch.call_args_list[0][0][0], 'ifdown {0} && ifup {0}'.format(ifname))
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_get_first_if(self):
         ifname, ipaddr = osutil.DefaultOSUtil().get_first_if()
         self.assertTrue(ifname.startswith('eth'))
@@ -48,6 +52,7 @@ class TestOSUtil(AgentTestCase):
         except socket.error:
             self.fail("not a valid ip address")
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_isloopback(self):
         self.assertTrue(osutil.DefaultOSUtil().is_loopback(b'lo'))
         self.assertFalse(osutil.DefaultOSUtil().is_loopback(b'eth0'))
@@ -106,6 +111,7 @@ class TestOSUtil(AgentTestCase):
             self.assertFalse(osutil.DefaultOSUtil().is_primary_interface('nflg'))
             self.assertFalse(osutil.DefaultOSUtil().is_primary_interface('invalid'))
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_no_primary_does_not_throw(self):
         with patch.object(osutil.DefaultOSUtil, 'get_primary_interface') \
                 as patch_primary:
@@ -142,6 +148,7 @@ class TestOSUtil(AgentTestCase):
                 self.assertTrue(endpoint is not None)
                 self.assertEqual(endpoint, "second")
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_get_total_mem(self):
         """
         Validate the returned value matches to the one retrieved by invoking shell command
@@ -153,6 +160,7 @@ class TestOSUtil(AgentTestCase):
         else:
             self.fail("Cannot retrieve total memory using shell command.")
 
+    @unittest.skipIf(DISTRO_NAME == 'delphix', 'test not suitable for delphix')
     def test_get_processor_cores(self):
         """
         Validate the returned value matches to the one retrieved by invoking shell command
@@ -163,6 +171,156 @@ class TestOSUtil(AgentTestCase):
             self.assertEqual(int(ret[1]), get_osutil().get_processor_cores())
         else:
             self.fail("Cannot retrieve number of process cores using shell command.")
+
+    def test_conf_sshd(self):
+        new_file = "\
+Port 22\n\
+Protocol 2\n\
+ChallengeResponseAuthentication yes\n\
+#PasswordAuthentication yes\n\
+UsePAM yes\n\
+"
+        expected_output = "\
+Port 22\n\
+Protocol 2\n\
+ChallengeResponseAuthentication no\n\
+#PasswordAuthentication yes\n\
+UsePAM yes\n\
+PasswordAuthentication no\n\
+ClientAliveInterval 180\n\
+"
+
+        with patch.object(fileutil, 'write_file') as patch_write:
+            with patch.object(fileutil, 'read_file', return_value=new_file):
+                osutil.DefaultOSUtil().conf_sshd(disable_password=True)
+                patch_write.assert_called_once_with(
+                    conf.get_sshd_conf_file_path(),
+                    expected_output)
+
+    def test_conf_sshd_with_match(self):
+        new_file = "\
+Port 22\n\
+ChallengeResponseAuthentication yes\n\
+Match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+"
+        expected_output = "\
+Port 22\n\
+ChallengeResponseAuthentication no\n\
+PasswordAuthentication no\n\
+ClientAliveInterval 180\n\
+Match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+"
+
+        with patch.object(fileutil, 'write_file') as patch_write:
+            with patch.object(fileutil, 'read_file', return_value=new_file):
+                osutil.DefaultOSUtil().conf_sshd(disable_password=True)
+                patch_write.assert_called_once_with(
+                    conf.get_sshd_conf_file_path(),
+                    expected_output)
+
+    def test_conf_sshd_with_match_last(self):
+        new_file = "\
+Port 22\n\
+Match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+"
+        expected_output = "\
+Port 22\n\
+PasswordAuthentication no\n\
+ChallengeResponseAuthentication no\n\
+ClientAliveInterval 180\n\
+Match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+"
+
+        with patch.object(fileutil, 'write_file') as patch_write:
+            with patch.object(fileutil, 'read_file', return_value=new_file):
+                osutil.DefaultOSUtil().conf_sshd(disable_password=True)
+                patch_write.assert_called_once_with(
+                    conf.get_sshd_conf_file_path(),
+                    expected_output)
+
+    def test_conf_sshd_with_match_middle(self):
+        new_file = "\
+Port 22\n\
+match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+match all\n\
+#Other config\n\
+"
+        expected_output = "\
+Port 22\n\
+match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+match all\n\
+#Other config\n\
+PasswordAuthentication no\n\
+ChallengeResponseAuthentication no\n\
+ClientAliveInterval 180\n\
+"
+
+        with patch.object(fileutil, 'write_file') as patch_write:
+            with patch.object(fileutil, 'read_file', return_value=new_file):
+                osutil.DefaultOSUtil().conf_sshd(disable_password=True)
+                patch_write.assert_called_once_with(
+                    conf.get_sshd_conf_file_path(),
+                    expected_output)
+
+    def test_conf_sshd_with_match_multiple(self):
+        new_file = "\
+Port 22\n\
+Match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+Match host 192.168.1.2\n\
+  ChallengeResponseAuthentication yes\n\
+Match all\n\
+#Other config\n\
+"
+        expected_output = "\
+Port 22\n\
+Match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+Match host 192.168.1.2\n\
+  ChallengeResponseAuthentication yes\n\
+Match all\n\
+#Other config\n\
+PasswordAuthentication no\n\
+ChallengeResponseAuthentication no\n\
+ClientAliveInterval 180\n\
+"
+
+        with patch.object(fileutil, 'write_file') as patch_write:
+            with patch.object(fileutil, 'read_file', return_value=new_file):
+                osutil.DefaultOSUtil().conf_sshd(disable_password=True)
+                patch_write.assert_called_once_with(
+                    conf.get_sshd_conf_file_path(),
+                    expected_output)
+
+    def test_conf_sshd_with_match_multiple_first_last(self):
+        new_file = "\
+Match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+Match host 192.168.1.2\n\
+  ChallengeResponseAuthentication yes\n\
+"
+        expected_output = "\
+PasswordAuthentication no\n\
+ChallengeResponseAuthentication no\n\
+ClientAliveInterval 180\n\
+Match host 192.168.1.1\n\
+  ChallengeResponseAuthentication yes\n\
+Match host 192.168.1.2\n\
+  ChallengeResponseAuthentication yes\n\
+"
+
+        with patch.object(fileutil, 'write_file') as patch_write:
+            with patch.object(fileutil, 'read_file', return_value=new_file):
+                osutil.DefaultOSUtil().conf_sshd(disable_password=True)
+                patch_write.assert_called_once_with(
+                    conf.get_sshd_conf_file_path(),
+                    expected_output)
 
 if __name__ == '__main__':
     unittest.main()

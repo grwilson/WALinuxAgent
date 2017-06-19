@@ -107,7 +107,8 @@ def parse_ext_status(ext_status, data):
     if substatus_list is None:
         return
     for substatus in substatus_list:
-        ext_status.substatusList.append(parse_ext_substatus(substatus))
+        if substatus is not None:
+            ext_status.substatusList.append(parse_ext_substatus(substatus))
 
 # This code migrates, if it exists, handler state and status from an
 # agent-owned directory into the handler-owned config directory
@@ -192,28 +193,34 @@ class ExtHandlersHandler(object):
     def handle_ext_handlers(self, etag=None):
         if self.ext_handlers.extHandlers is None or \
                 len(self.ext_handlers.extHandlers) == 0:
-            logger.verbose("No ext handler config found")
+            logger.verbose("No extension handler config found")
             return
 
+        if conf.get_enable_overprovisioning():
+            artifacts_profile = self.protocol.get_artifacts_profile()
+            if artifacts_profile and artifacts_profile.is_on_hold():
+                logger.info("Extension handling is on hold")
+                return
+
         for ext_handler in self.ext_handlers.extHandlers:
-            #TODO handle install in sequence, enable in parallel
+            # TODO: handle install in sequence, enable in parallel
             self.handle_ext_handler(ext_handler, etag)
     
     def handle_ext_handler(self, ext_handler, etag):
         ext_handler_i = ExtHandlerInstance(ext_handler, self.protocol)
 
-        ext_handler_i.decide_version()
-        if not ext_handler_i.is_upgrade and self.last_etag == etag:
-            if self.log_etag:
-                ext_handler_i.logger.info("Version {0} is current for etag {1}",
-                                          ext_handler_i.pkg.version,
-                                          etag)
-                self.log_etag = False
-            return
-
-        self.log_etag = True
-
         try:
+            ext_handler_i.decide_version()
+            if not ext_handler_i.is_upgrade and self.last_etag == etag:
+                if self.log_etag:
+                    ext_handler_i.logger.verbose("Version {0} is current for etag {1}",
+                                                 ext_handler_i.pkg.version,
+                                                 etag)
+                    self.log_etag = False
+                return
+
+            self.log_etag = True
+
             state = ext_handler.properties.state
             ext_handler_i.logger.info("Expected handler state: {0}", state)
             if state == "enabled":
@@ -275,12 +282,8 @@ class ExtHandlersHandler(object):
         ext_handler_i.rm_ext_handler_dir()
     
     def report_ext_handlers_status(self):
-        """Go thru handler_state dir, collect and report status"""
-        vm_status = VMStatus()
-        vm_status.vmAgent.version = str(CURRENT_VERSION)
-        vm_status.vmAgent.status = "Ready"
-        vm_status.vmAgent.message = "Guest Agent is running"
-
+        """Go through handler_state dir, collect and report status"""
+        vm_status = VMStatus(status="Ready", message="Guest Agent is running")
         if self.ext_handlers is not None:
             for ext_handler in self.ext_handlers.extHandlers:
                 try:
@@ -291,7 +294,7 @@ class ExtHandlersHandler(object):
                         version=CURRENT_VERSION,
                         is_success=False,
                         message=ustr(e))
-        
+
         logger.verbose("Report vm agent status")
         try:
             self.protocol.report_vm_status(vm_status)
@@ -324,7 +327,8 @@ class ExtHandlersHandler(object):
                 ext_handler_i.set_handler_status(message=ustr(e), code=-1)
 
         vm_status.vmAgent.extensionHandlers.append(handler_status)
-        
+
+
 class ExtHandlerInstance(object):
     def __init__(self, ext_handler, protocol):
         self.ext_handler = ext_handler
@@ -354,9 +358,10 @@ class ExtHandlerInstance(object):
 
         # Determine the desired and installed versions
         requested_version = FlexibleVersion(self.ext_handler.properties.version)
-        installed_version = FlexibleVersion(self.get_installed_version())
-        if installed_version is None:
-            installed_version = requested_version
+        installed_version_string = self.get_installed_version()
+        installed_version = requested_version \
+            if installed_version_string is None \
+            else FlexibleVersion(installed_version_string)
 
         # Divide packages
         # - Find the installed package (its version must exactly match)
@@ -514,8 +519,10 @@ class ExtHandlerInstance(object):
         for uri in self.pkg.uris:
             try:
                 package = self.protocol.download_ext_handler_pkg(uri.uri)
-            except ProtocolError as e: 
-                logger.warn("Failed download extension: {0}", e)
+                if package is not None:
+                    break
+            except Exception as e:
+                logger.warn("Error while downloading extension: {0}", e)
         
         if package is None:
             raise ExtensionError("Failed to download extension")
@@ -660,7 +667,7 @@ class ExtHandlerInstance(object):
             ext_status.message = u"Failed to get status file {0}".format(e)
             ext_status.code = -1
             ext_status.status = "error"
-        except ValueError as e:
+        except (ExtensionError, ValueError) as e:
             ext_status.message = u"Malformed status file {0}".format(e)
             ext_status.code = -1
             ext_status.status = "error"
@@ -798,6 +805,9 @@ class ExtHandlerInstance(object):
     def set_handler_state(self, handler_state):
         state_dir = self.get_conf_dir()
         try:
+            if not os.path.exists(state_dir):
+                fileutil.mkdir(state_dir, mode=0o700)
+
             state_file = os.path.join(state_dir, "HandlerState")
             fileutil.write_file(state_file, handler_state)
         except IOError as e:

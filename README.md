@@ -1,5 +1,12 @@
 ## Microsoft Azure Linux Agent README
 
+### DELPHIX
+
+For Delphix specific information, please see the [DELPHIX.md](DELPHIX.md)
+file. This includes information specific to the Delphix platform specific
+parts of the Agent, as well as information specific to modifying and
+maintaining the Agent as a Delphix employee.
+
 ### INTRODUCTION
 
 The Microsoft Azure Linux Agent (waagent) manages Linux & FreeBSD provisioning,

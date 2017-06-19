@@ -1,6 +1,7 @@
 # Microsoft Azure Linux Agent
 #
 # Copyright 2014 Microsoft Corporation
+# Copyright (c) 2017 by Delphix. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +18,8 @@
 # Requires Python 2.4+ and Openssl 1.0+
 #
 
+import signal
+import sys
 import azurelinuxagent.common.conf as conf
 from azurelinuxagent.common.exception import ProtocolError
 from azurelinuxagent.common.future import read_input
@@ -38,6 +41,8 @@ class DeprovisionHandler(object):
     def __init__(self):
         self.osutil = get_osutil()
         self.protocol_util = get_protocol_util()
+        self.actions_running = False
+        signal.signal(signal.SIGINT, self.handle_interrupt_signal)
 
     def del_root_password(self, warnings, actions):
         warnings.append("WARNING! root password will be disabled. "
@@ -84,8 +89,9 @@ class DeprovisionHandler(object):
         dirs_to_del = ["/var/lib/dhclient", "/var/lib/dhcpcd", "/var/lib/dhcp"]
         actions.append(DeprovisionAction(fileutil.rm_dirs, dirs_to_del))
 
-        # For Freebsd
-        actions.append(DeprovisionAction(fileutil.rm_files, ["/var/db/dhclient.leases.hn0"]))
+        # For Freebsd, NM controlled
+        actions.append(DeprovisionAction(fileutil.rm_files, ["/var/db/dhclient.leases.hn0",
+                                                             "/var/lib/NetworkManager/dhclient-*.lease"]))
 
     def del_lib_dir(self, warnings, actions):
         dirs_to_del = [conf.get_lib_dir()]
@@ -131,7 +137,16 @@ class DeprovisionHandler(object):
             if not confirm.lower().startswith('y'):
                 return
 
+        self.actions_running = True
         for action in actions:
             action.invoke()
+
+    def handle_interrupt_signal(self, signum, frame):
+        if not self.actions_running:
+            print("Deprovision is interrupted.")
+            sys.exit(0)
+
+        print ('Deprovisioning may not be interrupted.')
+        return
 
 

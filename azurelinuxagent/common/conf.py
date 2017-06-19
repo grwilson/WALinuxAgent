@@ -85,7 +85,9 @@ def load_conf_from_file(conf_file_path, conf=__conf__):
 
 
 def enable_rdma(conf=__conf__):
-    return conf.get_switch("OS.EnableRDMA", False)
+    return conf.get_switch("OS.EnableRDMA", False) or \
+           conf.get_switch("OS.UpdateRdmaDriver", False) or \
+           conf.get_switch("OS.CheckRdmaDriver", False)
 
 
 def get_logs_verbose(conf=__conf__):
@@ -94,6 +96,10 @@ def get_logs_verbose(conf=__conf__):
 
 def get_lib_dir(conf=__conf__):
     return conf.get("Lib.Dir", "/var/lib/waagent")
+
+
+def get_published_hostname(conf=__conf__):
+    return os.path.join(get_lib_dir(conf), 'published_hostname')
 
 
 def get_dvd_mount_point(conf=__conf__):
@@ -218,3 +224,6 @@ def get_autoupdate_enabled(conf=__conf__):
 
 def get_autoupdate_frequency(conf=__conf__):
     return conf.get_int("Autoupdate.Frequency", 3600)
+
+def get_enable_overprovisioning(conf=__conf__):
+    return conf.get_switch("EnableOverProvisioning", False)
