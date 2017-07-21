@@ -42,8 +42,7 @@ pipelineJob('update-package') {
         env('SLAVE_ROLES', 'dlpx.initialize-dxos')
 
         env('SDIST_MIRROR_DIRECTORY', '/net/pharos/export/third-party/mirror')
-        env('PKG_REPOSITORY_DIRECTORIES',
-            '/net/pharos/export/src/dlpx-pkg-gate /net/pharos/export/src/5.1/dlpx-pkg-5.1-release')
+        env('PKG_REPOSITORY_DIRECTORIES', '/net/pharos/export/src/dlpx-pkg-gate')
 
         if (System.getenv('JENKINS_DEVELOPER') == null) {
             env('UPDATE_SDIST_MIRROR', 'yes')
