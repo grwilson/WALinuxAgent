@@ -24,6 +24,7 @@ from azurelinuxagent.common.version import DISTRO_NAME, \
 from .default import ResourceDiskHandler
 from .freebsd import FreeBSDResourceDiskHandler
 from .delphix import DelphixOSResourceDiskHandler
+from .omni import OmniOSResourceDiskHandler
 
 def get_resourcedisk_handler(distro_name=DISTRO_NAME, 
                              distro_version=DISTRO_VERSION,
@@ -32,6 +33,8 @@ def get_resourcedisk_handler(distro_name=DISTRO_NAME,
         return FreeBSDResourceDiskHandler()
     elif distro_name == "delphix":
         return DelphixOSResourceDiskHandler()
+    elif distro_name == "omni":
+        return OmniOSResourceDiskHandler()
 
     return ResourceDiskHandler()
 

@@ -30,6 +30,7 @@ from .ubuntu import UbuntuOSUtil, Ubuntu12OSUtil, Ubuntu14OSUtil, UbuntuSnappyOS
 from .alpine import AlpineOSUtil
 from .bigip import BigIpOSUtil
 from .delphix import DelphixOSUtil
+from .omni import OmniOSUtil
 
 
 def get_osutil(distro_name=DISTRO_NAME,
@@ -85,6 +86,8 @@ def get_osutil(distro_name=DISTRO_NAME,
         return BigIpOSUtil()
     elif distro_name == "delphix":
         return DelphixOSUtil()
+    elif distro_name == "omni":
+        return OmniOSUtil()
     else:
         logger.warn("Unable to load distro implementation for {0}. Using "
                     "default distro implementation instead.",

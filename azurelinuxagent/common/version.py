@@ -63,8 +63,12 @@ def get_distro():
         release = re.sub('\-.*\Z', '', ustr(platform.release()))
         osinfo = ['freebsd', release, '', 'freebsd']
     elif 'SunOS' in platform.system():
-        release = fileutil.read_file("/etc/delphix/version").strip()
-        osinfo = ['delphix', release, '', 'delphix']
+        if os.path.exists("/etc/delphix/version"):
+            release = fileutil.read_file("/etc/delphix/version").strip()
+            osinfo = ['delphix', release, '', 'delphix']
+        else:
+            release = platform.release()
+            osinfo = ['omni', release, '', 'omni']
     elif 'linux_distribution' in dir(platform):
         supported = platform._supported_dists + ('alpine',)
         osinfo = list(platform.linux_distribution(full_distribution_name=0,
